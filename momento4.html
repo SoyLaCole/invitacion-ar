@@ -82,7 +82,7 @@ startBtn.addEventListener("click", () => {
   // Desbloquear reproducción de video con este toque (sin esperar)
   [vid, vidFull].forEach(v => { v.muted = true; v.play().then(() => { v.pause(); v.currentTime = 0; v.muted = false; }).catch(()=>{ v.muted = false; }); });
   try {
-    scene.systems["mindar-image-system"].start().then(() => {
+    Promise.resolve(scene.systems["mindar-image-system"].start()).then(() => {
       hint.textContent = "Apunta la cámara a la página del televisor";
     }).catch(e => {
       hint.textContent = "No se pudo abrir la cámara. Revisa los permisos.";
