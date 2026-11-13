@@ -58,13 +58,13 @@
 <body>
 <div id="start">
   <h1>Momento 4</h1>
-  <p>Cuando el video termine de cargar, toca para comenzar y apunta la cámara hacia la página del televisor.</p>
+  <p id="startMsg">Preparando la experiencia…</p>
   <div id="loadwrap">
     <div id="pct">0%</div>
     <div id="loadbar"><div id="loadfill"></div></div>
     <div id="loadtxt">Cargando video…</div>
   </div>
-  <button id="startBtn" disabled>Cargando…</button>
+  <button id="startBtn" style="display:none">Reintentar</button>
 </div>
 <div id="reticle"><div id="tip">Abriendo cámara…</div></div>
 <div id="badge">Buscando la imagen…</div>
@@ -132,13 +132,15 @@ vid.loop = true; vid.playsInline = true; vid.setAttribute("webkit-playsinline", 
 vid.style.cssText = "position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none";
 document.body.appendChild(vid);
 
-let found = false, fullOpen = false, handDone = false, lostTimer = null;
-let sceneReady = false, videoReady = false;
+// El video de la escena siempre va en silencio (los celulares solo permiten sonido tras un toque);
+// el sonido se activa al abrir el video en pantalla completa, que sí nace de un toque.
+vid.muted = true; vid.setAttribute("muted", "");
 
-function refreshButton() {
-  if (sceneReady && videoReady) { startBtn.disabled = false; startBtn.textContent = "Comenzar"; }
-}
-if (scene.hasLoaded) { sceneReady = true; } else scene.addEventListener("loaded", () => { sceneReady = true; refreshButton(); });
+let found = false, fullOpen = false, handDone = false, lostTimer = null;
+let sceneReady = false, videoReady = false, started = false;
+
+function maybeStart() { if (sceneReady && videoReady && !started) startAR(); }
+if (scene.hasLoaded) { sceneReady = true; } else scene.addEventListener("loaded", () => { sceneReady = true; maybeStart(); });
 
 /* ---------- Carga del video con porcentaje (0–100 %) ---------- */
 async function loadVideo() {
@@ -170,35 +172,39 @@ async function loadVideo() {
     avideo.setAttribute("material", "src", vid);
     avideo.setAttribute("material", "color", "#ffffff");
     pctEl.textContent = "100%"; loadfill.style.width = "100%"; loadtxt.textContent = "¡Video listo! ✓";
-    videoReady = true; refreshButton();
+    videoReady = true; maybeStart();
   } catch (e) {
     pctEl.textContent = "⚠";
     loadtxt.textContent = "No se pudo cargar el video. Revisa tu conexión y recarga la página.";
-    startBtn.textContent = "Error de carga";
+    startBtn.style.display = "inline-block"; startBtn.textContent = "Reintentar";
     dbg.textContent = String(e);
   }
 }
 loadVideo();
 
-/* ---------- Inicio ---------- */
-startBtn.addEventListener("click", () => {
-  document.querySelector("#start").style.display = "none";
+/* ---------- Inicio automático (sin botón) ---------- */
+function startAR() {
+  started = true;
+  const st = document.querySelector("#start");
+  st.style.transition = "opacity .5s"; st.style.opacity = 0;
+  setTimeout(() => { st.style.display = "none"; }, 500);
   reticle.style.display = "block"; badge.style.display = "block";
   setTip("Abriendo cámara…");
-  // Desbloquear la reproducción de video (y audio) con este toque
-  [vid, vidFull].forEach(v => { v.muted = true; v.play().then(() => { v.pause(); v.currentTime = 0.05; v.muted = false; }).catch(() => { v.muted = false; }); });
+  const fail = (msg, e) => {
+    setTip(msg); dbg.textContent = String(e || "");
+    // si algo falla, se vuelve a mostrar la portada con un botón para reintentar (un toque del usuario)
+    st.style.display = "flex"; st.style.opacity = 1; loadwrap.style.display = "none";
+    document.querySelector("#startMsg").textContent = msg;
+    startBtn.style.display = "inline-block"; startBtn.textContent = "Reintentar";
+    started = false;
+  };
   try {
     Promise.resolve(scene.systems["mindar-image-system"].start()).then(() => {
       if (!found) setTip("Centra la imagen del televisor dentro del recuadro");
-    }).catch(e => {
-      setTip("No se pudo abrir la cámara. Revisa los permisos.");
-      dbg.textContent = String(e);
-    });
-  } catch (e) {
-    setTip("Error al iniciar. Recarga la página.");
-    dbg.textContent = String(e);
-  }
-});
+    }).catch(e => fail("No se pudo abrir la cámara. Revisa los permisos.", e));
+  } catch (e) { fail("Error al iniciar. Recarga la página.", e); }
+}
+startBtn.addEventListener("click", () => { startBtn.style.display = "none"; startAR(); });
 
 target.addEventListener("targetFound", () => {
   found = true;
@@ -226,6 +232,7 @@ function openFull() {
   vidFull.currentTime = vid.currentTime;
   vid.pause();
   document.querySelector("#full").style.display = "flex";
+  vidFull.muted = false;
   vidFull.play().catch(() => {});
 }
 function closeFull() {
