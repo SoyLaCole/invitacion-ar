@@ -163,8 +163,9 @@ function placeHand() {
   if (found && !fullOpen && !handDone && scene.camera) {
     avideo.object3D.getWorldPosition(V3);
     V3.project(scene.camera);
-    const x = (V3.x * 0.5 + 0.5) * window.innerWidth;
-    const y = (-V3.y * 0.5 + 0.5) * window.innerHeight;
+    let x = (V3.x * 0.5 + 0.5) * window.innerWidth;
+    let y = (-V3.y * 0.5 + 0.5) * window.innerHeight;
+    if (!isFinite(x) || !isFinite(y)) { x = window.innerWidth / 2; y = window.innerHeight * 0.45; }
     // la punta del dedo queda en el centro del video
     hand.style.transform = "translate(" + (x - 36 * 0.96) + "px," + (y - 72 * 0.12) + "px)";
     hand.style.display = "block";
