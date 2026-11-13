@@ -6,7 +6,7 @@
 <title>Momento 4 · Prueba de video</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script>
 (function(){
   var md=navigator.mediaDevices; if(!md||!md.getUserMedia) return;
@@ -25,26 +25,23 @@
   html, body { margin:0; height:100%; overflow:hidden; font-family:'Plus Jakarta Sans', system-ui, sans-serif; }
   button { font-family:inherit; }
 
+  /* ---------- Portada con cargador del video ---------- */
   #start { position:fixed; inset:0; z-index:20; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px;
     background: radial-gradient(circle at 50% 30%, #5b21b6 0%, #1c0a33 72%); color:#fff; }
   #start h1 { font-size:28px; font-weight:700; letter-spacing:.2px; margin:0 0 10px; }
-  #start p  { color:#e9ddff; margin:0 0 26px; max-width:300px; line-height:1.5; font-size:15px; }
+  #start p  { color:#e9ddff; margin:0 0 22px; max-width:300px; line-height:1.5; font-size:15px; }
+  #loadwrap { width:min(80vw,320px); margin:0 0 26px; text-align:center; transition:opacity .5s; }
+  #pct { font-size:64px; font-weight:800; line-height:1; letter-spacing:-1px; color:#fff; }
+  #loadbar { height:12px; border-radius:8px; background:rgba(255,255,255,.22); overflow:hidden; margin-top:14px; }
+  #loadfill { height:100%; width:0%; border-radius:8px; background:#fff; transition:width .15s linear; }
+  #loadtxt { margin-top:10px; font-size:14px; font-weight:600; color:#e9ddff; }
   #startBtn { font-size:17px; font-weight:600; padding:14px 30px; border-radius:30px; border:1px solid #fff; background:rgba(255,255,255,.14); color:#fff; letter-spacing:.3px; min-width:220px; }
-  #startBtn:disabled { opacity:.6; }
+  #startBtn:disabled { opacity:.5; }
 
-  /* cargador del video 0–100 % */
-  #loadwrap { margin-top:22px; width:min(78vw,280px); transition:opacity .4s; }
-  #loadbar { height:8px; border-radius:6px; background:rgba(255,255,255,.22); overflow:hidden; }
-  #loadfill { height:100%; width:0%; border-radius:6px; background:#fff; transition:width .15s linear; }
-  #loadtxt { margin-top:9px; font-size:13px; font-weight:600; color:#e9ddff; }
-
-  #hint { position:fixed; left:12px; right:12px; bottom:26px; z-index:10; text-align:center; color:#fff; font-weight:600; font-size:15px; pointer-events:none; transition:opacity .4s;
-    background:rgba(76,29,149,.85); border:1px solid rgba(255,255,255,.7); border-radius:16px; padding:10px 14px; }
-  #full { position:fixed; inset:0; z-index:30; background:#000; display:none; align-items:center; justify-content:center; }
-  #full video { width:100%; height:100%; object-fit:contain; background:#000; }
-  #close { position:absolute; top:14px; right:14px; z-index:31; width:44px; height:44px; border-radius:50%; border:1px solid #fff; background:rgba(76,29,149,.9); color:#fff; font-size:24px; line-height:1; }
-  #reticle { position:fixed; z-index:9; left:50%; top:46%; width:72vw; max-width:360px; aspect-ratio:3/2; transform:translate(-50%,-50%);
-    border:3px dashed rgba(255,255,255,.9); border-radius:18px; box-shadow:0 0 0 2px rgba(91,33,182,.7); pointer-events:none; display:none; }
+  /* ---------- Recuadro guía + tooltip (siempre en formato tooltip) ---------- */
+  #reticle { position:fixed; z-index:9; left:50%; top:44%; width:72vw; max-width:360px; aspect-ratio:3/2; transform:translate(-50%,-50%);
+    border:3px dashed rgba(255,255,255,.9); border-radius:18px; box-shadow:0 0 0 2px rgba(91,33,182,.7); pointer-events:none; display:none; transition:border-color .25s, box-shadow .25s; }
+  #reticle.found { border-color:transparent; box-shadow:none; }   /* el recuadro se oculta pero el tooltip se queda */
   #tip { position:absolute; left:50%; top:calc(100% + 16px); transform:translateX(-50%); width:max-content; max-width:80vw; box-sizing:border-box; text-align:center;
     background:#fff; color:#4c1d95; font-weight:600; font-size:14px; line-height:1.35; padding:10px 16px; border-radius:14px; box-shadow:0 6px 18px rgba(28,10,51,.45); }
   #tip::before { content:""; position:absolute; left:50%; top:-9px; margin-left:-10px; border-left:10px solid transparent; border-right:10px solid transparent; border-bottom:10px solid #fff; }
@@ -52,31 +49,25 @@
     background:rgba(76,29,149,.88); color:#fff; border:1px solid #fff; display:none; pointer-events:none; white-space:nowrap; }
   #badge.ok { background:#fff; color:#4c1d95; border-color:#c4b5fd; }
 
-  /* manito que indica tocar el video */
-  #hand { position:fixed; z-index:15; left:0; top:0; width:60px; height:60px; pointer-events:none; display:none; }
-  #hand svg { width:60px; height:60px; overflow:visible; animation:tap 1.4s ease-in-out infinite; filter:drop-shadow(0 3px 6px rgba(0,0,0,.55)); }
-  #hand .ring { position:absolute; left:50%; top:14%; width:20px; height:20px; margin:-10px 0 0 -10px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 2px #7c3aed; opacity:0; animation:ripple 1.4s ease-out infinite; }
-  @keyframes tap { 0%,100% { transform:translateY(14px) scale(1); } 40%,55% { transform:translateY(0) scale(.92); } }
-  @keyframes ripple { 0%,35% { opacity:0; transform:scale(.4); } 45% { opacity:1; transform:scale(1); } 100% { opacity:0; transform:scale(3.2); } }
+  #full { position:fixed; inset:0; z-index:30; background:#000; display:none; align-items:center; justify-content:center; }
+  #full video { width:100%; height:100%; object-fit:contain; background:#000; }
+  #close { position:absolute; top:14px; right:14px; z-index:31; width:44px; height:44px; border-radius:50%; border:1px solid #fff; background:rgba(76,29,149,.9); color:#fff; font-size:24px; line-height:1; }
   #debug { position:fixed; top:8px; left:8px; z-index:10; color:#c4b5fd; font:11px monospace; }
 </style>
 </head>
 <body>
 <div id="start">
   <h1>Momento 4</h1>
-  <p>Toca para comenzar y apunta la cámara hacia la página del televisor.</p>
-  <button id="startBtn" disabled>Cargando…</button>
+  <p>Cuando el video termine de cargar, toca para comenzar y apunta la cámara hacia la página del televisor.</p>
   <div id="loadwrap">
+    <div id="pct">0%</div>
     <div id="loadbar"><div id="loadfill"></div></div>
-    <div id="loadtxt">Cargando video… 0%</div>
+    <div id="loadtxt">Cargando video…</div>
   </div>
+  <button id="startBtn" disabled>Cargando…</button>
 </div>
-<div id="reticle"><div id="tip">Centra la imagen del televisor dentro del recuadro</div></div>
+<div id="reticle"><div id="tip">Abriendo cámara…</div></div>
 <div id="badge">Buscando la imagen…</div>
-<div id="hand"><div class="ring"></div>
-  <svg viewBox="0 0 24 24"><path fill="#fff" stroke="#5b21b6" stroke-width="1.1" stroke-linejoin="round" d="M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74l-3.43-.72c-.08-.01-.15-.03-.24-.03-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.44 1.06.44h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.07.02-.14.02-.2 0-.62-.38-1.16-.91-1.38z"/></svg>
-</div>
-<div id="hint" style="display:none">Apunta la cámara a la página del televisor</div>
 <div id="full">
   <button id="close" aria-label="Cerrar">&times;</button>
   <video id="vidFull" playsinline webkit-playsinline controls></video>
@@ -94,8 +85,20 @@
   <a-entity id="target" mindar-image-target="targetIndex: 0">
     <!-- fondo de la pantalla (barras laterales del video vertical) -->
     <a-plane position="-0.023 0.002 0.004" width="0.334" height="0.251" material="color:#2e1065; shader:flat"></a-plane>
-    <!-- video vertical 9:16 contenido dentro de la pantalla: alto 0.251 -> ancho 0.141 -->
+    <!-- video vertical 9:16 contenido dentro de la pantalla -->
     <a-plane id="avideo" position="-0.023 0.002 0.008" width="0.141" height="0.251" material="shader:flat; color:#2e1065"></a-plane>
+
+    <!-- manito animada que invita a tocar (vive en la escena, pegada al televisor) -->
+    <a-entity id="handG" visible="false">
+      <a-ring position="-0.023 -0.035 0.03" radius-inner="0.016" radius-outer="0.024" material="color:#ffffff; shader:flat; transparent:true; opacity:0"
+        animation__s="property: scale; from: 0.3 0.3 0.3; to: 2.4 2.4 2.4; dur: 1400; loop: true; easing: easeOutQuad"
+        animation__o="property: material.opacity; from: 1; to: 0; dur: 1400; loop: true; easing: easeInQuad"></a-ring>
+      <a-ring position="-0.023 -0.035 0.029" radius-inner="0.024" radius-outer="0.03" material="color:#7c3aed; shader:flat; transparent:true; opacity:0"
+        animation__s="property: scale; from: 0.3 0.3 0.3; to: 2.4 2.4 2.4; dur: 1400; loop: true; easing: easeOutQuad"
+        animation__o="property: material.opacity; from: 1; to: 0; dur: 1400; loop: true; easing: easeInQuad"></a-ring>
+      <a-image id="handImg" width="0.2" height="0.2" position="-0.019 -0.11 0.04"
+        animation="property: position; from: -0.019 -0.135 0.04; to: -0.019 -0.11 0.04; dur: 650; dir: alternate; loop: true; easing: easeInOutSine"></a-image>
+    </a-entity>
   </a-entity>
 </a-scene>
 
@@ -105,12 +108,23 @@ const scene = document.querySelector("#scene");
 const target = document.querySelector("#target");
 const avideo = document.querySelector("#avideo");
 const vidFull = document.querySelector("#vidFull");
-const hint = document.querySelector("#hint");
-const dbg = document.querySelector("#debug");
+const handG = document.querySelector("#handG");
+const tip = document.querySelector("#tip");
 const reticle = document.querySelector("#reticle"), badge = document.querySelector("#badge");
-const hand = document.querySelector("#hand");
+const dbg = document.querySelector("#debug");
 const startBtn = document.querySelector("#startBtn");
-const loadfill = document.querySelector("#loadfill"), loadtxt = document.querySelector("#loadtxt"), loadwrap = document.querySelector("#loadwrap");
+const pctEl = document.querySelector("#pct"), loadfill = document.querySelector("#loadfill"), loadtxt = document.querySelector("#loadtxt"), loadwrap = document.querySelector("#loadwrap");
+const setTip = (t) => { tip.textContent = t; };
+
+/* ---------- Imagen de la manito (se dibuja una vez en un canvas) ---------- */
+(function makeHand() {
+  const c = document.createElement("canvas"); c.width = c.height = 256;
+  const g = c.getContext("2d"); g.scale(256 / 24, 256 / 24);
+  const p = new Path2D("M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74l-3.43-.72c-.08-.01-.15-.03-.24-.03-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.44 1.06.44h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.07.02-.14.02-.2 0-.62-.38-1.16-.91-1.38z");
+  g.lineJoin = "round"; g.lineWidth = 1.5; g.strokeStyle = "#5b21b6"; g.fillStyle = "#ffffff";
+  g.stroke(p); g.fill(p);
+  document.querySelector("#handImg").setAttribute("src", c.toDataURL("image/png"));
+})();
 
 // Video usado como textura dentro de la escena
 const vid = document.createElement("video");
@@ -140,11 +154,9 @@ async function loadVideo() {
       chunks.push(value); got += value.length;
       if (total) {
         const pct = Math.min(99, Math.floor(got / total * 100));
-        loadfill.style.width = pct + "%";
-        loadtxt.textContent = "Cargando video… " + pct + "%";
-        startBtn.textContent = "Cargando video " + pct + "%";
+        pctEl.textContent = pct + "%"; loadfill.style.width = pct + "%";
       } else {
-        loadtxt.textContent = "Cargando video…";
+        pctEl.textContent = "…";
       }
     }
     const url = URL.createObjectURL(new Blob(chunks, { type: "video/mp4" }));
@@ -155,14 +167,13 @@ async function loadVideo() {
       vid.load();
     });
     vidFull.load();
-    // el video ya es la textura del plano
     avideo.setAttribute("material", "src", vid);
     avideo.setAttribute("material", "color", "#ffffff");
-    loadfill.style.width = "100%"; loadtxt.textContent = "Video listo ✓";
+    pctEl.textContent = "100%"; loadfill.style.width = "100%"; loadtxt.textContent = "¡Video listo! ✓";
     videoReady = true; refreshButton();
-    setTimeout(() => { loadwrap.style.opacity = 0; }, 900);
   } catch (e) {
-    loadtxt.textContent = "No se pudo cargar el video. Revisa tu conexión y recarga.";
+    pctEl.textContent = "⚠";
+    loadtxt.textContent = "No se pudo cargar el video. Revisa tu conexión y recarga la página.";
     startBtn.textContent = "Error de carga";
     dbg.textContent = String(e);
   }
@@ -172,20 +183,19 @@ loadVideo();
 /* ---------- Inicio ---------- */
 startBtn.addEventListener("click", () => {
   document.querySelector("#start").style.display = "none";
-  hint.style.display = "block";
-  hint.textContent = "Abriendo cámara…";
   reticle.style.display = "block"; badge.style.display = "block";
-  // Desbloquear la reproducción de video con este toque
+  setTip("Abriendo cámara…");
+  // Desbloquear la reproducción de video (y audio) con este toque
   [vid, vidFull].forEach(v => { v.muted = true; v.play().then(() => { v.pause(); v.currentTime = 0.05; v.muted = false; }).catch(() => { v.muted = false; }); });
   try {
     Promise.resolve(scene.systems["mindar-image-system"].start()).then(() => {
-      hint.style.opacity = 0;   // la ayuda de búsqueda es el tooltip del recuadro
+      if (!found) setTip("Centra la imagen del televisor dentro del recuadro");
     }).catch(e => {
-      hint.textContent = "No se pudo abrir la cámara. Revisa los permisos.";
+      setTip("No se pudo abrir la cámara. Revisa los permisos.");
       dbg.textContent = String(e);
     });
   } catch (e) {
-    hint.textContent = "Error al iniciar. Recarga la página.";
+    setTip("Error al iniciar. Recarga la página.");
     dbg.textContent = String(e);
   }
 });
@@ -193,24 +203,26 @@ startBtn.addEventListener("click", () => {
 target.addEventListener("targetFound", () => {
   found = true;
   clearTimeout(lostTimer);
-  reticle.style.display = "none";
+  reticle.classList.add("found");
   badge.classList.add("ok"); badge.textContent = "✓ ¡Imagen detectada!";
+  setTip("Toca el televisor para ver el video en pantalla completa");
   if (navigator.vibrate) navigator.vibrate(60);
-  hint.textContent = "Toca el televisor para ver el video en pantalla completa";
-  hint.style.opacity = 1;
+  if (!handDone) handG.setAttribute("visible", true);
   if (!fullOpen) vid.play().catch(e => dbg.textContent = "play: " + e);
 });
 target.addEventListener("targetLost", () => {
   found = false;
+  reticle.classList.remove("found");
   badge.classList.remove("ok"); badge.textContent = "Buscando la imagen…";
-  reticle.style.display = "block";
-  hint.style.opacity = 0;
+  setTip("Centra la imagen del televisor dentro del recuadro");
+  handG.setAttribute("visible", false);
   clearTimeout(lostTimer);
   lostTimer = setTimeout(() => { if (!found) vid.pause(); }, 2500);
 });
 
 function openFull() {
   fullOpen = true; handDone = true;
+  handG.setAttribute("visible", false);
   vidFull.currentTime = vid.currentTime;
   vid.pause();
   document.querySelector("#full").style.display = "flex";
@@ -225,25 +237,6 @@ function closeFull() {
 }
 scene.addEventListener("click", () => { if (found && !fullOpen) openFull(); });
 document.querySelector("#close").addEventListener("click", (e) => { e.stopPropagation(); closeFull(); });
-
-/* La manito apunta al borde inferior del video, sobre la pantalla del televisor */
-const V3 = new AFRAME.THREE.Vector3();
-function placeHand() {
-  if (found && !fullOpen && !handDone && scene.camera) {
-    V3.set(0, -0.251 * 0.30, 0.01);
-    avideo.object3D.localToWorld(V3);
-    V3.project(scene.camera);
-    let x = (V3.x * 0.5 + 0.5) * window.innerWidth;
-    let y = (-V3.y * 0.5 + 0.5) * window.innerHeight;
-    if (!isFinite(x) || !isFinite(y)) { x = window.innerWidth / 2; y = window.innerHeight * 0.5; }
-    hand.style.transform = "translate(" + (x - 30 * 0.96) + "px," + (y - 60 * 0.12) + "px)";
-    hand.style.display = "block";
-  } else {
-    hand.style.display = "none";
-  }
-  requestAnimationFrame(placeHand);
-}
-requestAnimationFrame(placeHand);
 </script>
 </body>
 </html>
