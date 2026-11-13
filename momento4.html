@@ -24,6 +24,9 @@
   #start p  { color:#e8dcf5; margin:0 0 28px; max-width:300px; line-height:1.4; }
   #start button { font-size:18px; padding:14px 30px; border-radius:30px; border:1px solid #f3d98b; background:rgba(243,217,139,.12); color:#f3d98b; letter-spacing:1px; }
   #hint { position:fixed; left:0; right:0; bottom:28px; z-index:10; text-align:center; color:#fff; font-size:15px; text-shadow:0 1px 6px #000; pointer-events:none; transition:opacity .4s; }
+  #full { position:fixed; inset:0; z-index:30; background:#000; display:none; align-items:center; justify-content:center; }
+  #full video { width:100%; height:100%; object-fit:contain; background:#000; }
+  #close { position:absolute; top:14px; right:14px; z-index:31; width:44px; height:44px; border-radius:50%; border:1px solid #f3d98b; background:rgba(0,0,0,.55); color:#f3d98b; font-size:24px; line-height:1; }
   #debug { position:fixed; top:8px; left:8px; z-index:10; color:#9f9; font:11px monospace; }
 </style>
 </head>
@@ -34,6 +37,10 @@
   <button id="startBtn">Comenzar</button>
 </div>
 <div id="hint" style="display:none">Apunta la cámara a la página del televisor</div>
+<div id="full">
+  <button id="close" aria-label="Cerrar">&times;</button>
+  <video id="vidFull" src="./momento4.mp4" playsinline webkit-playsinline controls preload="auto"></video>
+</div>
 <div id="debug"></div>
 
 <a-scene id="scene"
@@ -58,28 +65,56 @@
 const scene = document.querySelector("#scene");
 const target = document.querySelector("#target");
 const vid = document.querySelector("#vid");
+const vidFull = document.querySelector("#vidFull");
+const hint = document.querySelector("#hint");
 const dbg = document.querySelector("#debug");
+let found = false, fullOpen = false;
 
-document.querySelector("#startBtn").addEventListener("click", async () => {
-  // Desbloquear la reproducción del video con el toque del usuario
-  try { await vid.play(); vid.pause(); vid.currentTime = 0; } catch(e) { dbg.textContent = "video: " + e; }
+document.querySelector("#startBtn").addEventListener("click", () => {
+  // Respuesta inmediata: ocultar portada y avisar que está cargando
   document.querySelector("#start").style.display = "none";
-  document.querySelector("#hint").style.display = "block";
-  try {
-    await scene.systems["mindar-image-system"].start();
-  } catch (e) {
-    document.querySelector("#hint").textContent = "No se pudo abrir la cámara. Revisa los permisos.";
+  hint.style.display = "block";
+  hint.textContent = "Abriendo cámara…";
+  // Desbloquear reproducción de video con este toque (sin esperar)
+  [vid, vidFull].forEach(v => { v.muted = true; v.play().then(() => { v.pause(); v.currentTime = 0; v.muted = false; }).catch(()=>{ v.muted = false; }); });
+  scene.systems["mindar-image-system"].start().then(() => {
+    hint.textContent = "Apunta la cámara a la página del televisor";
+  }).catch(e => {
+    hint.textContent = "No se pudo abrir la cámara. Revisa los permisos.";
     dbg.textContent = String(e);
-  }
+  });
 });
+
 target.addEventListener("targetFound", () => {
-  document.querySelector("#hint").style.opacity = 0;
-  vid.play().catch(e => dbg.textContent = "play: " + e);
+  found = true;
+  hint.textContent = "Toca el video para verlo en pantalla completa";
+  hint.style.opacity = 1;
+  if (!fullOpen) vid.play().catch(e => dbg.textContent = "play: " + e);
 });
 target.addEventListener("targetLost", () => {
-  document.querySelector("#hint").style.opacity = 1;
+  found = false;
+  hint.textContent = "Apunta la cámara a la página del televisor";
+  hint.style.opacity = 1;
   vid.pause();
 });
+
+function openFull() {
+  fullOpen = true;
+  vidFull.currentTime = vid.currentTime;
+  vid.pause();
+  document.querySelector("#full").style.display = "flex";
+  vidFull.play().catch(()=>{});
+}
+function closeFull() {
+  fullOpen = false;
+  vidFull.pause();
+  vid.currentTime = vidFull.currentTime;
+  document.querySelector("#full").style.display = "none";
+  if (found) vid.play().catch(()=>{});
+}
+// Tocar mientras la página está reconocida abre la pantalla completa
+document.querySelector("a-scene").addEventListener("click", () => { if (found && !fullOpen) openFull(); });
+document.querySelector("#close").addEventListener("click", (e) => { e.stopPropagation(); closeFull(); });
 </script>
 </body>
 </html>
