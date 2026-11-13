@@ -88,22 +88,28 @@
     <!-- video vertical 9:16 contenido dentro de la pantalla -->
     <a-plane id="avideo" position="-0.023 0.002 0.008" width="0.141" height="0.251" material="shader:flat; color:#2e1065"></a-plane>
 
+    <!-- botón de reproducir sobre el video en pausa -->
+    <a-circle id="playIcon" position="-0.023 0.002 0.02" radius="0.034" material="color:#ffffff; shader:flat; transparent:true; opacity:0.92"></a-circle>
+    <a-triangle position="-0.019 0.002 0.021" vertex-a="0 0.016 0" vertex-b="-0.014 -0.016 0" vertex-c="0.014 -0.016 0" rotation="0 0 -90"
+      material="color:#5b21b6; shader:flat"></a-triangle>
+
     <!-- manito animada que invita a tocar (vive en la escena, pegada al televisor) -->
     <a-entity id="handG" visible="false">
-      <a-ring position="-0.023 -0.035 0.03" radius-inner="0.016" radius-outer="0.024" material="color:#ffffff; shader:flat; transparent:true; opacity:0"
+      <a-ring position="-0.023 0.002 0.03" radius-inner="0.016" radius-outer="0.024" material="color:#ffffff; shader:flat; transparent:true; opacity:0"
         animation__s="property: scale; from: 0.3 0.3 0.3; to: 2.4 2.4 2.4; dur: 1400; loop: true; easing: easeOutQuad"
         animation__o="property: material.opacity; from: 1; to: 0; dur: 1400; loop: true; easing: easeInQuad"></a-ring>
-      <a-ring position="-0.023 -0.035 0.029" radius-inner="0.024" radius-outer="0.03" material="color:#7c3aed; shader:flat; transparent:true; opacity:0"
+      <a-ring position="-0.023 0.002 0.029" radius-inner="0.024" radius-outer="0.03" material="color:#7c3aed; shader:flat; transparent:true; opacity:0"
         animation__s="property: scale; from: 0.3 0.3 0.3; to: 2.4 2.4 2.4; dur: 1400; loop: true; easing: easeOutQuad"
         animation__o="property: material.opacity; from: 1; to: 0; dur: 1400; loop: true; easing: easeInQuad"></a-ring>
-      <a-image id="handImg" width="0.2" height="0.2" position="-0.019 -0.11 0.04"
-        animation="property: position; from: -0.019 -0.135 0.04; to: -0.019 -0.11 0.04; dur: 650; dir: alternate; loop: true; easing: easeInOutSine"></a-image>
+      <a-image id="handImg" width="0.2" height="0.2" position="-0.019 -0.073 0.04"
+        animation="property: position; from: -0.019 -0.098 0.04; to: -0.019 -0.073 0.04; dur: 650; dir: alternate; loop: true; easing: easeInOutSine"></a-image>
     </a-entity>
   </a-entity>
 </a-scene>
 
 <script>
 const VIDEO_URL = "./momento4.mp4";
+const POSTER = 1.0;          // segundo del video que se muestra en pausa dentro del televisor
 const scene = document.querySelector("#scene");
 const target = document.querySelector("#target");
 const avideo = document.querySelector("#avideo");
@@ -169,6 +175,11 @@ async function loadVideo() {
       vid.load();
     });
     vidFull.load();
+    // dejar el video de la escena en pausa mostrando un cuadro representativo
+    vid.currentTime = POSTER;
+    await new Promise(ok => { vid.addEventListener("seeked", ok, { once: true }); setTimeout(ok, 1500); });
+    try { await vid.play(); vid.pause(); } catch (e) {}      // (en silencio) fuerza que se decodifique el cuadro
+    vid.currentTime = POSTER;
     avideo.setAttribute("material", "src", vid);
     avideo.setAttribute("material", "color", "#ffffff");
     pctEl.textContent = "100%"; loadfill.style.width = "100%"; loadtxt.textContent = "¡Video listo! ✓";
@@ -214,7 +225,6 @@ target.addEventListener("targetFound", () => {
   setTip("Toca el televisor para ver el video en pantalla completa");
   if (navigator.vibrate) navigator.vibrate(60);
   if (!handDone) handG.setAttribute("visible", true);
-  if (!fullOpen) vid.play().catch(e => dbg.textContent = "play: " + e);
 });
 target.addEventListener("targetLost", () => {
   found = false;
@@ -222,15 +232,12 @@ target.addEventListener("targetLost", () => {
   badge.classList.remove("ok"); badge.textContent = "Buscando la imagen…";
   setTip("Centra la imagen del televisor dentro del recuadro");
   handG.setAttribute("visible", false);
-  clearTimeout(lostTimer);
-  lostTimer = setTimeout(() => { if (!found) vid.pause(); }, 2500);
 });
 
 function openFull() {
   fullOpen = true; handDone = true;
   handG.setAttribute("visible", false);
-  vidFull.currentTime = vid.currentTime;
-  vid.pause();
+  vidFull.currentTime = 0;          // arranca desde el comienzo
   document.querySelector("#full").style.display = "flex";
   vidFull.muted = false;
   vidFull.play().catch(() => {});
@@ -238,9 +245,7 @@ function openFull() {
 function closeFull() {
   fullOpen = false;
   vidFull.pause();
-  vid.currentTime = vidFull.currentTime;
-  document.querySelector("#full").style.display = "none";
-  if (found) vid.play().catch(() => {});
+  document.querySelector("#full").style.display = "none";   // en la escena el video sigue en pausa
 }
 scene.addEventListener("click", () => { if (found && !fullOpen) openFull(); });
 document.querySelector("#close").addEventListener("click", (e) => { e.stopPropagation(); closeFull(); });
