@@ -159,9 +159,10 @@ if (scene.hasLoaded) { sceneReady = true; } else scene.addEventListener("loaded"
 /* ---------- Carga del video con porcentaje (0–100 %) ---------- */
 async function loadVideo() {
   try {
+    dbg.textContent = "descargando…";
     const res = await fetch(VIDEO_URL);
     if (!res.ok) throw new Error("HTTP " + res.status);
-    const total = parseInt(res.headers.get("content-length") || "0", 10);
+    const total = parseInt(res.headers.get("content-length") || "0", 10) || 2561861;   // tamaño conocido si el servidor no lo informa
     const reader = res.body.getReader();
     const chunks = []; let got = 0;
     for (;;) {
@@ -177,16 +178,19 @@ async function loadVideo() {
     }
     const url = URL.createObjectURL(new Blob(chunks, { type: "video/mp4" }));
     vid.src = url; vidFull.src = url;
+    dbg.textContent = "descargado, preparando…";
     await new Promise((ok, fail) => {
       vid.addEventListener("loadeddata", ok, { once: true });
+      vid.addEventListener("loadedmetadata", ok, { once: true });
       vid.addEventListener("error", () => fail(new Error("video")), { once: true });
+      setTimeout(ok, 4000);          // si el celular no precarga el video, seguimos igual
       vid.load();
     });
     vidFull.load();
     // dejar el video de la escena en pausa mostrando un cuadro representativo
     vid.currentTime = POSTER;
     await new Promise(ok => { vid.addEventListener("seeked", ok, { once: true }); setTimeout(ok, 1500); });
-    try { await vid.play(); vid.pause(); } catch (e) {}      // (en silencio) fuerza que se decodifique el cuadro
+    try { await Promise.race([vid.play(), new Promise(r => setTimeout(r, 1500))]); vid.pause(); } catch (e) {}      // (en silencio) fuerza que se decodifique el cuadro
     vid.currentTime = POSTER;
     avideo.setAttribute("material", "src", vid);
     avideo.setAttribute("material", "color", "#ffffff");
