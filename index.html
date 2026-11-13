@@ -4,7 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>El comienzo de todo lo que soñamos ser</title>
-<script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script><script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+<script>
+// Pedir video de mayor resolución a la cámara (mejora el alcance de reconocimiento)
+(function(){
+  var md=navigator.mediaDevices; if(!md||!md.getUserMedia) return;
+  var orig=md.getUserMedia.bind(md);
+  md.getUserMedia=function(c){
+    if(c&&c.video){
+      if(c.video===true) c.video={};
+      c.video.width={ideal:1920}; c.video.height={ideal:1080};
+    }
+    return orig(c);
+  };
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 <style>
   html, body { margin:0; height:100%; background:#1c0a33; font-family: Georgia, serif; overflow:hidden; }
   #start {
