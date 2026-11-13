@@ -22,6 +22,7 @@
     background: radial-gradient(circle at 50% 30%, #4b1d7a 0%, #1c0a33 70%); color:#f3d98b; }
   #start h1 { font-size:26px; font-weight:normal; letter-spacing:1px; margin:0 0 10px; }
   #start p  { color:#e8dcf5; margin:0 0 28px; max-width:300px; line-height:1.4; }
+  #start button:disabled { opacity:.5; }
   #start button { font-size:18px; padding:14px 30px; border-radius:30px; border:1px solid #f3d98b; background:rgba(243,217,139,.12); color:#f3d98b; letter-spacing:1px; }
   #hint { position:fixed; left:0; right:0; bottom:28px; z-index:10; text-align:center; color:#fff; font-size:15px; text-shadow:0 1px 6px #000; pointer-events:none; transition:opacity .4s; }
   #full { position:fixed; inset:0; z-index:30; background:#000; display:none; align-items:center; justify-content:center; }
@@ -34,7 +35,7 @@
 <div id="start">
   <h1>Momento 4</h1>
   <p>Toca para comenzar y apunta la cámara hacia la página del televisor.</p>
-  <button id="startBtn">Comenzar</button>
+  <button id="startBtn" disabled>Cargando…</button>
 </div>
 <div id="hint" style="display:none">Apunta la cámara a la página del televisor</div>
 <div id="full">
@@ -70,19 +71,27 @@ const hint = document.querySelector("#hint");
 const dbg = document.querySelector("#debug");
 let found = false, fullOpen = false;
 
-document.querySelector("#startBtn").addEventListener("click", () => {
-  // Respuesta inmediata: ocultar portada y avisar que está cargando
+const startBtn = document.querySelector("#startBtn");
+function ready() { startBtn.disabled = false; startBtn.textContent = "Comenzar"; }
+if (scene.hasLoaded) ready(); else scene.addEventListener("loaded", ready);
+
+startBtn.addEventListener("click", () => {
   document.querySelector("#start").style.display = "none";
   hint.style.display = "block";
   hint.textContent = "Abriendo cámara…";
   // Desbloquear reproducción de video con este toque (sin esperar)
   [vid, vidFull].forEach(v => { v.muted = true; v.play().then(() => { v.pause(); v.currentTime = 0; v.muted = false; }).catch(()=>{ v.muted = false; }); });
-  scene.systems["mindar-image-system"].start().then(() => {
-    hint.textContent = "Apunta la cámara a la página del televisor";
-  }).catch(e => {
-    hint.textContent = "No se pudo abrir la cámara. Revisa los permisos.";
+  try {
+    scene.systems["mindar-image-system"].start().then(() => {
+      hint.textContent = "Apunta la cámara a la página del televisor";
+    }).catch(e => {
+      hint.textContent = "No se pudo abrir la cámara. Revisa los permisos.";
+      dbg.textContent = String(e);
+    });
+  } catch (e) {
+    hint.textContent = "Error al iniciar. Recarga la página.";
     dbg.textContent = String(e);
-  });
+  }
 });
 
 target.addEventListener("targetFound", () => {
