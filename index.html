@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>El comienzo de todo lo que soñamos ser</title>
+<script src="https://cdn.jsdelivr.net/npm/aframe@1.5.0/dist/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+<style>
+  html, body { margin:0; height:100%; background:#1c0a33; font-family: Georgia, serif; overflow:hidden; }
+  #start {
+    position:fixed; inset:0; z-index:20; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center; padding:24px;
+    background: radial-gradient(circle at 50% 30%, #4b1d7a 0%, #1c0a33 70%); color:#f3d98b;
+  }
+  #start h1 { font-size:26px; font-weight:normal; letter-spacing:1px; margin:0 0 10px; }
+  #start p  { color:#e8dcf5; margin:0 0 28px; max-width:300px; line-height:1.4; }
+  #start button {
+    font-size:18px; padding:14px 30px; border-radius:30px; border:1px solid #f3d98b;
+    background:rgba(243,217,139,.12); color:#f3d98b; letter-spacing:1px;
+  }
+  #hint {
+    position:fixed; left:0; right:0; bottom:28px; z-index:10; text-align:center;
+    color:#fff; font-size:15px; text-shadow:0 1px 6px #000; pointer-events:none;
+  }
+  #debug { position:fixed; top:8px; left:8px; z-index:10; color:#9f9; font:11px monospace; }
+</style>
+</head>
+<body>
+
+<div id="start">
+  <h1>El comienzo de todo<br>lo que soñamos ser</h1>
+  <p>Toca para comenzar y apunta la cámara hacia la página de la invitación.</p>
+  <button id="startBtn">Comenzar</button>
+</div>
+<div id="hint" style="display:none">Apunta la cámara a la página donde todo comenzó</div>
+<div id="debug"></div>
+
+<a-scene id="scene"
+  mindar-image="imageTargetSrc: ./momento2.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no; filterMinCF:0.0001; filterBeta: 0.001; warmupTolerance: 5; missTolerance: 10;"
+  color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights"
+  vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+
+  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+  <!-- Marcador: página del momento 2. Ancho = 1, alto = 781/476 = 1.641. Origen = centro de la imagen. -->
+  <a-entity id="target" mindar-image-target="targetIndex: 0">
+
+    <!-- Aro de luz dorada alrededor de la fachada -->
+    <a-ring position="0 0.13 0.02" radius-inner="0.44" radius-outer="0.455"
+            material="color:#f6d77f; shader:flat; transparent:true; opacity:0.9"
+            animation="property: scale; from:0.92 0.92 0.92; to:1.08 1.08 1.08; dir:alternate; dur:1800; loop:true; easing:easeInOutSine"></a-ring>
+    <a-ring position="0 0.13 0.03" radius-inner="0.30" radius-outer="0.308"
+            material="color:#ffffff; shader:flat; transparent:true; opacity:0.6"
+            animation="property: rotation; to:0 0 360; dur:9000; loop:true; easing:linear"></a-ring>
+
+    <!-- Destellos -->
+    <a-circle position="-0.33 0.42 0.04" radius="0.018" material="color:#fff3c4; shader:flat; transparent:true"
+      animation="property: material.opacity; from:0.1; to:1; dir:alternate; dur:700; loop:true"></a-circle>
+    <a-circle position="0.30 0.38 0.04" radius="0.022" material="color:#fff3c4; shader:flat; transparent:true"
+      animation="property: material.opacity; from:1; to:0.1; dir:alternate; dur:900; loop:true"></a-circle>
+    <a-circle position="0.10 0.52 0.04" radius="0.015" material="color:#ffe9a6; shader:flat; transparent:true"
+      animation="property: material.opacity; from:0.2; to:1; dir:alternate; dur:1100; loop:true"></a-circle>
+    <a-circle position="-0.20 -0.12 0.04" radius="0.018" material="color:#ffe9a6; shader:flat; transparent:true"
+      animation="property: material.opacity; from:1; to:0.2; dir:alternate; dur:800; loop:true"></a-circle>
+    <a-circle position="0.38 -0.02 0.04" radius="0.016" material="color:#fff3c4; shader:flat; transparent:true"
+      animation="property: material.opacity; from:0.2; to:1; dir:alternate; dur:1000; loop:true"></a-circle>
+
+    <!-- Luz que sube desde la puerta -->
+    <a-plane position="0 0.02 0.01" width="0.20" height="0.50"
+             material="color:#ffe9a6; shader:flat; transparent:true; opacity:0.0"
+             animation="property: material.opacity; from:0; to:0.35; dir:alternate; dur:1600; loop:true; easing:easeInOutSine"></a-plane>
+
+    <a-text value="¡Reconocida!" align="center" color="#ffe9a6" width="1.4" position="0 -0.55 0.05"></a-text>
+  </a-entity>
+</a-scene>
+
+<script>
+/* ---------- AUDIO ----------
+   AUDIO_URL: cuando tengan la canción real, poner aquí la ruta (ej. "audio/cancion.mp3").
+   Mientras esté vacío, se usa un sonido sintético suave SOLO para probar que el audio funciona. */
+const AUDIO_URL = "";
+
+let ctx, timer, audioEl;
+function startAudio() {
+  if (AUDIO_URL) {
+    audioEl = audioEl || Object.assign(new Audio(AUDIO_URL), { loop: true });
+    audioEl.play().catch(()=>{});
+    return;
+  }
+  if (!ctx) return;
+  const notes = [261.63, 329.63, 392.0, 523.25, 392.0, 329.63];
+  let i = 0;
+  const play = () => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = "sine"; o.frequency.value = notes[i++ % notes.length];
+    g.gain.setValueAtTime(0, ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.18, ctx.currentTime + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.2);
+    o.connect(g).connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 1.3);
+  };
+  play(); timer = setInterval(play, 600);
+}
+function stopAudio() {
+  if (audioEl) audioEl.pause();
+  clearInterval(timer); timer = null;
+}
+
+/* ---------- ARRANQUE ---------- */
+const scene = document.querySelector("#scene");
+const target = document.querySelector("#target");
+const dbg = document.querySelector("#debug");
+
+document.querySelector("#startBtn").addEventListener("click", async () => {
+  // El audio en celulares solo se permite después de un toque del usuario
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  await ctx.resume();
+  document.querySelector("#start").style.display = "none";
+  document.querySelector("#hint").style.display = "block";
+  try {
+    await scene.systems["mindar-image-system"].start();
+  } catch (e) {
+    document.querySelector("#hint").textContent = "No se pudo abrir la cámara. Revisa los permisos.";
+    dbg.textContent = String(e);
+  }
+});
+
+target.addEventListener("targetFound", () => {
+  document.querySelector("#hint").style.opacity = 0;
+  dbg.textContent = "targetFound";
+  startAudio();
+});
+target.addEventListener("targetLost", () => {
+  document.querySelector("#hint").style.opacity = 1;
+  dbg.textContent = "targetLost";
+  stopAudio();
+});
+</script>
+</body>
+</html>
