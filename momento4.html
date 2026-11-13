@@ -17,7 +17,9 @@
 <script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 <style>
-  html, body { margin:0; height:100%; background:#1c0a33; font-family: Georgia, serif; overflow:hidden; }
+  html { background:#1c0a33; }
+  body { background:transparent; }
+  html, body { margin:0; height:100%; font-family: Georgia, serif; overflow:hidden; }
   #start { position:fixed; inset:0; z-index:20; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px;
     background: radial-gradient(circle at 50% 30%, #4b1d7a 0%, #1c0a33 70%); color:#f3d98b; }
   #start h1 { font-size:26px; font-weight:normal; letter-spacing:1px; margin:0 0 10px; }
@@ -28,6 +30,12 @@
   #full { position:fixed; inset:0; z-index:30; background:#000; display:none; align-items:center; justify-content:center; }
   #full video { width:100%; height:100%; object-fit:contain; background:#000; }
   #close { position:absolute; top:14px; right:14px; z-index:31; width:44px; height:44px; border-radius:50%; border:1px solid #f3d98b; background:rgba(0,0,0,.55); color:#f3d98b; font-size:24px; line-height:1; }
+  #reticle { position:fixed; z-index:9; left:50%; top:46%; width:72vw; max-width:360px; aspect-ratio:3/2; transform:translate(-50%,-50%);
+    border:3px dashed rgba(255,255,255,.85); border-radius:18px; pointer-events:none; display:none; transition:border-color .25s, box-shadow .25s; }
+  #reticle.ok { border:3px solid #4ade80; box-shadow:0 0 0 4px rgba(74,222,128,.35), 0 0 30px rgba(74,222,128,.6); }
+  #badge { position:fixed; z-index:12; top:16px; left:50%; transform:translateX(-50%); padding:9px 18px; border-radius:24px; font:600 15px system-ui,sans-serif;
+    background:rgba(0,0,0,.6); color:#fde68a; border:1px solid #fde68a; display:none; pointer-events:none; white-space:nowrap; }
+  #badge.ok { background:rgba(22,101,52,.9); color:#fff; border-color:#4ade80; }
   #debug { position:fixed; top:8px; left:8px; z-index:10; color:#9f9; font:11px monospace; }
 </style>
 </head>
@@ -37,6 +45,8 @@
   <p>Toca para comenzar y apunta la cámara hacia la página del televisor.</p>
   <button id="startBtn" disabled>Cargando…</button>
 </div>
+<div id="reticle"></div>
+<div id="badge">Buscando la imagen…</div>
 <div id="hint" style="display:none">Apunta la cámara a la página del televisor</div>
 <div id="full">
   <button id="close" aria-label="Cerrar">&times;</button>
@@ -70,6 +80,7 @@ const vidFull = document.querySelector("#vidFull");
 const hint = document.querySelector("#hint");
 const dbg = document.querySelector("#debug");
 let found = false, fullOpen = false;
+const reticle = document.querySelector("#reticle"), badge = document.querySelector("#badge");
 
 const startBtn = document.querySelector("#startBtn");
 function ready() { startBtn.disabled = false; startBtn.textContent = "Comenzar"; }
@@ -79,11 +90,12 @@ startBtn.addEventListener("click", () => {
   document.querySelector("#start").style.display = "none";
   hint.style.display = "block";
   hint.textContent = "Abriendo cámara…";
+  reticle.style.display = "block"; badge.style.display = "block";
   // Desbloquear reproducción de video con este toque (sin esperar)
   [vid, vidFull].forEach(v => { v.muted = true; v.play().then(() => { v.pause(); v.currentTime = 0; v.muted = false; }).catch(()=>{ v.muted = false; }); });
   try {
     Promise.resolve(scene.systems["mindar-image-system"].start()).then(() => {
-      hint.textContent = "Apunta la cámara a la página del televisor";
+      hint.textContent = "Centra la imagen del televisor dentro del recuadro";
     }).catch(e => {
       hint.textContent = "No se pudo abrir la cámara. Revisa los permisos.";
       dbg.textContent = String(e);
@@ -96,12 +108,15 @@ startBtn.addEventListener("click", () => {
 
 target.addEventListener("targetFound", () => {
   found = true;
+  reticle.classList.add("ok"); badge.classList.add("ok"); badge.textContent = "✓ ¡Imagen detectada!";
+  if (navigator.vibrate) navigator.vibrate(60);
   hint.textContent = "Toca el video para verlo en pantalla completa";
   hint.style.opacity = 1;
   if (!fullOpen) vid.play().catch(e => dbg.textContent = "play: " + e);
 });
 target.addEventListener("targetLost", () => {
   found = false;
+  reticle.classList.remove("ok"); badge.classList.remove("ok"); badge.textContent = "Buscando la imagen…";
   hint.textContent = "Apunta la cámara a la página del televisor";
   hint.style.opacity = 1;
   vid.pause();
