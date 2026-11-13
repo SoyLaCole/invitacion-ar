@@ -145,7 +145,15 @@ vid.muted = true; vid.setAttribute("muted", "");
 let found = false, fullOpen = false, handDone = false, lostTimer = null;
 let sceneReady = false, videoReady = false, started = false;
 
-function maybeStart() { if (sceneReady && videoReady && !started) startAR(); }
+/* Contador suave: avanza de a 1 % cada ~28 ms (mínimo ~2.8 s) y nunca pasa del progreso real */
+let target_pct = 0, shown = 0, shownDone = false;
+function setPct(n) { pctEl.textContent = n + "%"; loadfill.style.width = n + "%"; }
+setInterval(() => {
+  if (shownDone) return;
+  if (shown < target_pct) { shown++; setPct(shown); }
+  if (shown >= 100) { shownDone = true; loadtxt.textContent = "¡Video listo! ✓"; setTimeout(maybeStart, 700); }
+}, 28);
+function maybeStart() { if (sceneReady && videoReady && shownDone && !started) startAR(); }
 if (scene.hasLoaded) { sceneReady = true; } else scene.addEventListener("loaded", () => { sceneReady = true; maybeStart(); });
 
 /* ---------- Carga del video con porcentaje (0–100 %) ---------- */
@@ -162,7 +170,7 @@ async function loadVideo() {
       chunks.push(value); got += value.length;
       if (total) {
         const pct = Math.min(99, Math.floor(got / total * 100));
-        pctEl.textContent = pct + "%"; loadfill.style.width = pct + "%";
+        target_pct = Math.max(target_pct, Math.min(95, pct));
       } else {
         pctEl.textContent = "…";
       }
@@ -182,7 +190,7 @@ async function loadVideo() {
     vid.currentTime = POSTER;
     avideo.setAttribute("material", "src", vid);
     avideo.setAttribute("material", "color", "#ffffff");
-    pctEl.textContent = "100%"; loadfill.style.width = "100%"; loadtxt.textContent = "¡Video listo! ✓";
+    target_pct = 100;
     videoReady = true; maybeStart();
   } catch (e) {
     pctEl.textContent = "⚠";
