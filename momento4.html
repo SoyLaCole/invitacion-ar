@@ -237,7 +237,8 @@ target.addEventListener("targetLost", () => {
 function openFull() {
   fullOpen = true; handDone = true;
   handG.setAttribute("visible", false);
-  vidFull.currentTime = 0;          // arranca desde el comienzo
+  // continúa donde quedó; solo reinicia si ya había terminado
+  if (vidFull.ended || (vidFull.duration && vidFull.currentTime >= vidFull.duration - 0.3)) vidFull.currentTime = 0;
   document.querySelector("#full").style.display = "flex";
   vidFull.muted = false;
   vidFull.play().catch(() => {});
