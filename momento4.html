@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>Momento 4 · Prueba de video</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <script>
 (function(){
   var md=navigator.mediaDevices; if(!md||!md.getUserMedia) return;
@@ -19,28 +22,38 @@
 <style>
   html { background:#1c0a33; }
   body { background:transparent; }
-  html, body { margin:0; height:100%; font-family: Georgia, serif; overflow:hidden; }
+  html, body { margin:0; height:100%; overflow:hidden; font-family:'Plus Jakarta Sans', system-ui, sans-serif; }
+  button { font-family:inherit; }
+
   #start { position:fixed; inset:0; z-index:20; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px;
     background: radial-gradient(circle at 50% 30%, #5b21b6 0%, #1c0a33 72%); color:#fff; }
-  #start h1 { font-size:26px; font-weight:normal; letter-spacing:1px; margin:0 0 10px; }
-  #start p  { color:#e9ddff; margin:0 0 28px; max-width:300px; line-height:1.4; }
-  #start button:disabled { opacity:.5; }
-  #start button { font-size:18px; padding:14px 30px; border-radius:30px; border:1px solid #fff; background:rgba(255,255,255,.14); color:#fff; letter-spacing:1px; }
-  #hint { position:fixed; left:12px; right:12px; bottom:26px; z-index:10; text-align:center; color:#fff; font:600 15px system-ui,sans-serif; pointer-events:none; transition:opacity .4s;
-    background:rgba(76,29,149,.82); border:1px solid rgba(255,255,255,.7); border-radius:16px; padding:10px 14px; }
+  #start h1 { font-size:28px; font-weight:700; letter-spacing:.2px; margin:0 0 10px; }
+  #start p  { color:#e9ddff; margin:0 0 26px; max-width:300px; line-height:1.5; font-size:15px; }
+  #startBtn { font-size:17px; font-weight:600; padding:14px 30px; border-radius:30px; border:1px solid #fff; background:rgba(255,255,255,.14); color:#fff; letter-spacing:.3px; min-width:220px; }
+  #startBtn:disabled { opacity:.6; }
+
+  /* cargador del video 0–100 % */
+  #loadwrap { margin-top:22px; width:min(78vw,280px); transition:opacity .4s; }
+  #loadbar { height:8px; border-radius:6px; background:rgba(255,255,255,.22); overflow:hidden; }
+  #loadfill { height:100%; width:0%; border-radius:6px; background:#fff; transition:width .15s linear; }
+  #loadtxt { margin-top:9px; font-size:13px; font-weight:600; color:#e9ddff; }
+
+  #hint { position:fixed; left:12px; right:12px; bottom:26px; z-index:10; text-align:center; color:#fff; font-weight:600; font-size:15px; pointer-events:none; transition:opacity .4s;
+    background:rgba(76,29,149,.85); border:1px solid rgba(255,255,255,.7); border-radius:16px; padding:10px 14px; }
   #full { position:fixed; inset:0; z-index:30; background:#000; display:none; align-items:center; justify-content:center; }
   #full video { width:100%; height:100%; object-fit:contain; background:#000; }
-  #close { position:absolute; top:14px; right:14px; z-index:31; width:44px; height:44px; border-radius:50%; border:1px solid #fff; background:rgba(76,29,149,.85); color:#fff; font-size:24px; line-height:1; }
+  #close { position:absolute; top:14px; right:14px; z-index:31; width:44px; height:44px; border-radius:50%; border:1px solid #fff; background:rgba(76,29,149,.9); color:#fff; font-size:24px; line-height:1; }
   #reticle { position:fixed; z-index:9; left:50%; top:46%; width:72vw; max-width:360px; aspect-ratio:3/2; transform:translate(-50%,-50%);
     border:3px dashed rgba(255,255,255,.9); border-radius:18px; box-shadow:0 0 0 2px rgba(91,33,182,.7); pointer-events:none; display:none; }
-  #badge { position:fixed; z-index:12; top:16px; left:50%; transform:translateX(-50%); padding:9px 18px; border-radius:24px; font:600 15px system-ui,sans-serif;
-    background:rgba(76,29,149,.85); color:#fff; border:1px solid #fff; display:none; pointer-events:none; white-space:nowrap; }
+  #badge { position:fixed; z-index:12; top:16px; left:50%; transform:translateX(-50%); padding:9px 18px; border-radius:24px; font-weight:600; font-size:15px;
+    background:rgba(76,29,149,.88); color:#fff; border:1px solid #fff; display:none; pointer-events:none; white-space:nowrap; }
   #badge.ok { background:#fff; color:#4c1d95; border-color:#c4b5fd; }
+
   /* manito que indica tocar el video */
-  #hand { position:fixed; z-index:15; left:0; top:0; width:72px; height:72px; pointer-events:none; display:none; }
-  #hand svg { width:72px; height:72px; overflow:visible; animation:tap 1.4s ease-in-out infinite; filter:drop-shadow(0 3px 6px rgba(0,0,0,.55)); }
+  #hand { position:fixed; z-index:15; left:0; top:0; width:60px; height:60px; pointer-events:none; display:none; }
+  #hand svg { width:60px; height:60px; overflow:visible; animation:tap 1.4s ease-in-out infinite; filter:drop-shadow(0 3px 6px rgba(0,0,0,.55)); }
   #hand .ring { position:absolute; left:50%; top:14%; width:20px; height:20px; margin:-10px 0 0 -10px; border-radius:50%; border:3px solid #fff; box-shadow:0 0 0 2px #7c3aed; opacity:0; animation:ripple 1.4s ease-out infinite; }
-  @keyframes tap { 0%,100% { transform:translateY(14px) scale(1); } 40% { transform:translateY(0) scale(.92); } 55% { transform:translateY(0) scale(.92); } }
+  @keyframes tap { 0%,100% { transform:translateY(14px) scale(1); } 40%,55% { transform:translateY(0) scale(.92); } }
   @keyframes ripple { 0%,35% { opacity:0; transform:scale(.4); } 45% { opacity:1; transform:scale(1); } 100% { opacity:0; transform:scale(3.2); } }
   #debug { position:fixed; top:8px; left:8px; z-index:10; color:#c4b5fd; font:11px monospace; }
 </style>
@@ -50,6 +63,10 @@
   <h1>Momento 4</h1>
   <p>Toca para comenzar y apunta la cámara hacia la página del televisor.</p>
   <button id="startBtn" disabled>Cargando…</button>
+  <div id="loadwrap">
+    <div id="loadbar"><div id="loadfill"></div></div>
+    <div id="loadtxt">Cargando video… 0%</div>
+  </div>
 </div>
 <div id="reticle"></div>
 <div id="badge">Buscando la imagen…</div>
@@ -59,7 +76,7 @@
 <div id="hint" style="display:none">Apunta la cámara a la página del televisor</div>
 <div id="full">
   <button id="close" aria-label="Cerrar">&times;</button>
-  <video id="vidFull" src="./momento4.mp4" playsinline webkit-playsinline controls preload="auto"></video>
+  <video id="vidFull" playsinline webkit-playsinline controls></video>
 </div>
 <div id="debug"></div>
 
@@ -67,42 +84,96 @@
   mindar-image="imageTargetSrc: ./momento4.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no; filterMinCF:0.0001; filterBeta: 0.001; warmupTolerance: 5; missTolerance: 10;"
   color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights"
   vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
-  <a-assets>
-    <video id="vid" src="./momento4.mp4" loop playsinline webkit-playsinline preload="auto" crossorigin="anonymous"></video>
-  </a-assets>
   <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-  <!-- Marcador: ancho = 1, alto = 445/662 = 0.672, origen = centro de la imagen -->
+  <!-- Marcador: ancho = 1, alto = 445/662 = 0.672, origen = centro de la imagen.
+       Pantalla del televisor medida sobre la ilustración: centro (-0.023, 0.002), 0.334 x 0.251 -->
   <a-entity id="target" mindar-image-target="targetIndex: 0">
-    <!-- marco morado y blanco -->
-    <a-plane position="0 0.42 0.09" width="0.51" height="0.87" material="color:#6d28d9; shader:flat"></a-plane>
-    <a-plane position="0 0.42 0.10" width="0.475" height="0.825" material="color:#ffffff; shader:flat"></a-plane>
-    <!-- video vertical que "sale" del televisor -->
-    <a-video id="avideo" src="#vid" position="0 0.42 0.11" width="0.45" height="0.8" material="shader:flat"></a-video>
+    <!-- fondo de la pantalla (barras laterales del video vertical) -->
+    <a-plane position="-0.023 0.002 0.004" width="0.334" height="0.251" material="color:#2e1065; shader:flat"></a-plane>
+    <!-- video vertical 9:16 contenido dentro de la pantalla: alto 0.251 -> ancho 0.141 -->
+    <a-plane id="avideo" position="-0.023 0.002 0.008" width="0.141" height="0.251" material="shader:flat; color:#2e1065"></a-plane>
   </a-entity>
 </a-scene>
 
 <script>
+const VIDEO_URL = "./momento4.mp4";
 const scene = document.querySelector("#scene");
 const target = document.querySelector("#target");
-const vid = document.querySelector("#vid");
+const avideo = document.querySelector("#avideo");
 const vidFull = document.querySelector("#vidFull");
 const hint = document.querySelector("#hint");
 const dbg = document.querySelector("#debug");
-let found = false, fullOpen = false;
 const reticle = document.querySelector("#reticle"), badge = document.querySelector("#badge");
-
+const hand = document.querySelector("#hand");
 const startBtn = document.querySelector("#startBtn");
-function ready() { startBtn.disabled = false; startBtn.textContent = "Comenzar"; }
-if (scene.hasLoaded) ready(); else scene.addEventListener("loaded", ready);
+const loadfill = document.querySelector("#loadfill"), loadtxt = document.querySelector("#loadtxt"), loadwrap = document.querySelector("#loadwrap");
 
+// Video usado como textura dentro de la escena
+const vid = document.createElement("video");
+vid.loop = true; vid.playsInline = true; vid.setAttribute("webkit-playsinline", ""); vid.preload = "auto";
+vid.style.cssText = "position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none";
+document.body.appendChild(vid);
+
+let found = false, fullOpen = false, handDone = false, lostTimer = null;
+let sceneReady = false, videoReady = false;
+
+function refreshButton() {
+  if (sceneReady && videoReady) { startBtn.disabled = false; startBtn.textContent = "Comenzar"; }
+}
+if (scene.hasLoaded) { sceneReady = true; } else scene.addEventListener("loaded", () => { sceneReady = true; refreshButton(); });
+
+/* ---------- Carga del video con porcentaje (0–100 %) ---------- */
+async function loadVideo() {
+  try {
+    const res = await fetch(VIDEO_URL);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const total = parseInt(res.headers.get("content-length") || "0", 10);
+    const reader = res.body.getReader();
+    const chunks = []; let got = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value); got += value.length;
+      if (total) {
+        const pct = Math.min(99, Math.floor(got / total * 100));
+        loadfill.style.width = pct + "%";
+        loadtxt.textContent = "Cargando video… " + pct + "%";
+        startBtn.textContent = "Cargando video " + pct + "%";
+      } else {
+        loadtxt.textContent = "Cargando video…";
+      }
+    }
+    const url = URL.createObjectURL(new Blob(chunks, { type: "video/mp4" }));
+    vid.src = url; vidFull.src = url;
+    await new Promise((ok, fail) => {
+      vid.addEventListener("loadeddata", ok, { once: true });
+      vid.addEventListener("error", () => fail(new Error("video")), { once: true });
+      vid.load();
+    });
+    vidFull.load();
+    // el video ya es la textura del plano
+    avideo.setAttribute("material", "src", vid);
+    avideo.setAttribute("material", "color", "#ffffff");
+    loadfill.style.width = "100%"; loadtxt.textContent = "Video listo ✓";
+    videoReady = true; refreshButton();
+    setTimeout(() => { loadwrap.style.opacity = 0; }, 900);
+  } catch (e) {
+    loadtxt.textContent = "No se pudo cargar el video. Revisa tu conexión y recarga.";
+    startBtn.textContent = "Error de carga";
+    dbg.textContent = String(e);
+  }
+}
+loadVideo();
+
+/* ---------- Inicio ---------- */
 startBtn.addEventListener("click", () => {
   document.querySelector("#start").style.display = "none";
   hint.style.display = "block";
   hint.textContent = "Abriendo cámara…";
   reticle.style.display = "block"; badge.style.display = "block";
-  // Desbloquear reproducción de video con este toque (sin esperar)
-  [vid, vidFull].forEach(v => { v.muted = true; v.play().then(() => { v.pause(); v.currentTime = 0.05; v.muted = false; }).catch(()=>{ v.muted = false; }); });
+  // Desbloquear la reproducción de video con este toque
+  [vid, vidFull].forEach(v => { v.muted = true; v.play().then(() => { v.pause(); v.currentTime = 0.05; v.muted = false; }).catch(() => { v.muted = false; }); });
   try {
     Promise.resolve(scene.systems["mindar-image-system"].start()).then(() => {
       hint.textContent = "Centra la imagen del televisor dentro del recuadro";
@@ -116,16 +187,13 @@ startBtn.addEventListener("click", () => {
   }
 });
 
-const hand = document.querySelector("#hand"), avideo = document.querySelector("#avideo");
-let lostTimer = null, handDone = false;
-
 target.addEventListener("targetFound", () => {
   found = true;
   clearTimeout(lostTimer);
-  reticle.style.display = "none";            // el recuadro desaparece para no tapar el video
+  reticle.style.display = "none";
   badge.classList.add("ok"); badge.textContent = "✓ ¡Imagen detectada!";
   if (navigator.vibrate) navigator.vibrate(60);
-  hint.textContent = "Toca el video para verlo en pantalla completa";
+  hint.textContent = "Toca el televisor para ver el video en pantalla completa";
   hint.style.opacity = 1;
   if (!fullOpen) vid.play().catch(e => dbg.textContent = "play: " + e);
 });
@@ -135,7 +203,6 @@ target.addEventListener("targetLost", () => {
   reticle.style.display = "block";
   hint.textContent = "Centra la imagen del televisor dentro del recuadro";
   hint.style.opacity = 1;
-  // pausa con un pequeño retraso: si se recupera enseguida, el video sigue sin reiniciarse
   clearTimeout(lostTimer);
   lostTimer = setTimeout(() => { if (!found) vid.pause(); }, 2500);
 });
@@ -145,29 +212,29 @@ function openFull() {
   vidFull.currentTime = vid.currentTime;
   vid.pause();
   document.querySelector("#full").style.display = "flex";
-  vidFull.play().catch(()=>{});
+  vidFull.play().catch(() => {});
 }
 function closeFull() {
   fullOpen = false;
   vidFull.pause();
   vid.currentTime = vidFull.currentTime;
   document.querySelector("#full").style.display = "none";
-  if (found) vid.play().catch(()=>{});
+  if (found) vid.play().catch(() => {});
 }
-document.querySelector("a-scene").addEventListener("click", () => { if (found && !fullOpen) openFull(); });
+scene.addEventListener("click", () => { if (found && !fullOpen) openFull(); });
 document.querySelector("#close").addEventListener("click", (e) => { e.stopPropagation(); closeFull(); });
 
-// La manito sigue la posición del video en pantalla
+/* La manito apunta al borde inferior del video, sobre la pantalla del televisor */
 const V3 = new AFRAME.THREE.Vector3();
 function placeHand() {
   if (found && !fullOpen && !handDone && scene.camera) {
-    avideo.object3D.getWorldPosition(V3);
+    V3.set(0, -0.251 * 0.30, 0.01);
+    avideo.object3D.localToWorld(V3);
     V3.project(scene.camera);
     let x = (V3.x * 0.5 + 0.5) * window.innerWidth;
     let y = (-V3.y * 0.5 + 0.5) * window.innerHeight;
-    if (!isFinite(x) || !isFinite(y)) { x = window.innerWidth / 2; y = window.innerHeight * 0.45; }
-    // la punta del dedo queda en el centro del video
-    hand.style.transform = "translate(" + (x - 36 * 0.96) + "px," + (y - 72 * 0.12) + "px)";
+    if (!isFinite(x) || !isFinite(y)) { x = window.innerWidth / 2; y = window.innerHeight * 0.5; }
+    hand.style.transform = "translate(" + (x - 30 * 0.96) + "px," + (y - 60 * 0.12) + "px)";
     hand.style.display = "block";
   } else {
     hand.style.display = "none";
