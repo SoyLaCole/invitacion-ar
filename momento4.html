@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Momento 4 · Prueba de video</title>
+<script>
+(function(){
+  var md=navigator.mediaDevices; if(!md||!md.getUserMedia) return;
+  var orig=md.getUserMedia.bind(md);
+  md.getUserMedia=function(c){
+    if(c&&c.video){ if(c.video===true) c.video={}; c.video.width={ideal:1920}; c.video.height={ideal:1080}; }
+    return orig(c);
+  };
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+<style>
+  html, body { margin:0; height:100%; background:#1c0a33; font-family: Georgia, serif; overflow:hidden; }
+  #start { position:fixed; inset:0; z-index:20; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px;
+    background: radial-gradient(circle at 50% 30%, #4b1d7a 0%, #1c0a33 70%); color:#f3d98b; }
+  #start h1 { font-size:26px; font-weight:normal; letter-spacing:1px; margin:0 0 10px; }
+  #start p  { color:#e8dcf5; margin:0 0 28px; max-width:300px; line-height:1.4; }
+  #start button { font-size:18px; padding:14px 30px; border-radius:30px; border:1px solid #f3d98b; background:rgba(243,217,139,.12); color:#f3d98b; letter-spacing:1px; }
+  #hint { position:fixed; left:0; right:0; bottom:28px; z-index:10; text-align:center; color:#fff; font-size:15px; text-shadow:0 1px 6px #000; pointer-events:none; transition:opacity .4s; }
+  #debug { position:fixed; top:8px; left:8px; z-index:10; color:#9f9; font:11px monospace; }
+</style>
+</head>
+<body>
+<div id="start">
+  <h1>Momento 4</h1>
+  <p>Toca para comenzar y apunta la cámara hacia la página del televisor.</p>
+  <button id="startBtn">Comenzar</button>
+</div>
+<div id="hint" style="display:none">Apunta la cámara a la página del televisor</div>
+<div id="debug"></div>
+
+<a-scene id="scene"
+  mindar-image="imageTargetSrc: ./momento4.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no; filterMinCF:0.0001; filterBeta: 0.001; warmupTolerance: 5; missTolerance: 10;"
+  color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights"
+  vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+  <a-assets>
+    <video id="vid" src="./momento4.mp4" loop playsinline webkit-playsinline preload="auto" crossorigin="anonymous"></video>
+  </a-assets>
+  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+  <!-- Marcador: ancho = 1, alto = 445/662 = 0.672, origen = centro de la imagen -->
+  <a-entity id="target" mindar-image-target="targetIndex: 0">
+    <!-- marco dorado -->
+    <a-plane position="0 0.42 0.10" width="0.48" height="0.84" material="color:#f6d77f; shader:flat"></a-plane>
+    <!-- video vertical que "sale" del televisor -->
+    <a-video src="#vid" position="0 0.42 0.11" width="0.45" height="0.8" material="shader:flat"></a-video>
+  </a-entity>
+</a-scene>
+
+<script>
+const scene = document.querySelector("#scene");
+const target = document.querySelector("#target");
+const vid = document.querySelector("#vid");
+const dbg = document.querySelector("#debug");
+
+document.querySelector("#startBtn").addEventListener("click", async () => {
+  // Desbloquear la reproducción del video con el toque del usuario
+  try { await vid.play(); vid.pause(); vid.currentTime = 0; } catch(e) { dbg.textContent = "video: " + e; }
+  document.querySelector("#start").style.display = "none";
+  document.querySelector("#hint").style.display = "block";
+  try {
+    await scene.systems["mindar-image-system"].start();
+  } catch (e) {
+    document.querySelector("#hint").textContent = "No se pudo abrir la cámara. Revisa los permisos.";
+    dbg.textContent = String(e);
+  }
+});
+target.addEventListener("targetFound", () => {
+  document.querySelector("#hint").style.opacity = 0;
+  vid.play().catch(e => dbg.textContent = "play: " + e);
+});
+target.addEventListener("targetLost", () => {
+  document.querySelector("#hint").style.opacity = 1;
+  vid.pause();
+});
+</script>
+</body>
+</html>

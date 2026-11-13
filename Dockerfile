@@ -1,4 +1,3 @@
 FROM nginx:1.27-alpine
-COPY index.html /usr/share/nginx/html/index.html
-COPY momento2.mind /usr/share/nginx/html/momento2.mind
+COPY index.html momento2.mind momento4.html momento4.mind momento4.mp4 /usr/share/nginx/html/
 EXPOSE 80
