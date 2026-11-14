@@ -72,7 +72,7 @@ AFRAME.registerComponent("star4", {
   #startBtn:disabled { opacity:.5; }
 
   /* ---------- Recuadro guía + tooltip (siempre en formato tooltip) ---------- */
-  #reticle { position:fixed; z-index:9; left:50%; top:44%; width:72vw; max-width:360px; aspect-ratio:3/2; transform:translate(-50%,-50%);
+  #reticle { position:fixed; z-index:9; left:50%; top:44%; width:68vw; max-width:330px; aspect-ratio:1/1; transform:translate(-50%,-50%);
     border:3px dashed rgba(255,255,255,.9); border-radius:18px; box-shadow:0 0 0 2px rgba(91,33,182,.7); pointer-events:none; display:none; transition:border-color .25s, box-shadow .25s; }
   #reticle.found { border-color:transparent; box-shadow:none; }   /* el recuadro se oculta pero el tooltip se queda */
   #tip { position:absolute; left:50%; top:calc(100% + 16px); transform:translateX(-50%); width:max-content; max-width:80vw; box-sizing:border-box; text-align:center;
@@ -95,6 +95,7 @@ AFRAME.registerComponent("star4", {
   #close { position:absolute; top:14px; right:14px; z-index:31; width:44px; height:44px; border-radius:50%; border:1px solid #fff; background:rgba(76,29,149,.9); color:#fff; font-size:24px; line-height:1; }
   #debug { position:fixed; top:8px; left:8px; z-index:10; color:#c4b5fd; font:11px monospace; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 </head>
 <body>
 <div id="start">
@@ -123,21 +124,27 @@ AFRAME.registerComponent("star4", {
     <a-light type="ambient" color="#ffffff" intensity="0.8"></a-light>
     <a-light type="directional" color="#ffffff" intensity="0.6" position="-0.5 1 1.5"></a-light>
 
-    <a-entity id="world" scale="0.01 0.01 0.01"
-      animation__pop="property: scale; from: 0.01 0.01 0.01; to: 1 1 1; dur: 1000; easing: easeOutElastic; startEvents: pop">
-
-      <!-- diamante central -->
-      <a-entity position="-0.007 0.016 0.1">
-        <a-octahedron radius="0.052" scale="1 1.35 1" material="color:#c4b5fd; emissive:#7c3aed; emissiveIntensity:0.9; metalness:0.7; roughness:0.15; flatShading:true"
-          animation="property: rotation; from: 0 0 0; to: 0 360 0; dur: 7000; loop: true; easing: linear"></a-octahedron>
-        <a-torus radius="0.095" radius-tubular="0.0025" segments-tubular="64" material="color:#ffffff; shader:flat; transparent:true; opacity:0.85"
-          animation="property: rotation; from: 70 0 0; to: 70 0 360; dur: 6000; loop: true; easing: linear"></a-torus>
-        <a-torus radius="0.095" radius-tubular="0.0025" segments-tubular="64" material="color:#ffd77a; shader:flat; transparent:true; opacity:0.85"
-          animation="property: rotation; from: 0 70 0; to: 360 70 0; dur: 8000; loop: true; easing: linear"></a-torus>
+    <a-entity id="world">
+      <!-- Plano de fondo: la ilustración completa (un poco más grande que la impresión para taparla) -->
+      <a-entity id="back">
+        <a-image id="backImg" width="1" height="0.656" material="shader:flat; transparent:true; alphaTest:0.01"></a-image>
       </a-entity>
 
-      <!-- los 4 programas se agregan por código -->
+      <!-- Resplandores que invitan a tocar cada programa (se crean por código) -->
       <a-entity id="progs"></a-entity>
+
+      <!-- Plano frontal: el rombo, lo más cercano al usuario -->
+      <a-entity id="front" position="0 0 0.003"
+        animation__rise="property: position; to: 0 0 0.15; dur: 1500; easing: easeOutElastic; startEvents: rise">
+        <a-image id="diaGlow" position="0 0 -0.004" width="0.34" height="0.34" material="blending:additive; transparent:true; depthWrite:false; shader:flat; opacity:0.4"
+          animation="property: scale; from: 0.85 0.85 0.85; to: 1.15 1.15 1.15; dur: 1700; dir: alternate; loop: true; easing: easeInOutSine"></a-image>
+        <a-entity id="diaBob" animation="property: position; from: 0 -0.006 0; to: 0 0.008 0; dur: 2600; dir: alternate; loop: true; easing: easeInOutSine">
+          <a-image id="diaImg" width="0.1135" height="0.1284" material="shader:flat; transparent:true; alphaTest:0.01"
+            animation__r="property: rotation; from: 0 0 -3; to: 0 0 3; dur: 3200; dir: alternate; loop: true; easing: easeInOutSine"></a-image>
+        </a-entity>
+        <a-image id="diaFlare" position="0 0.028 0.004" width="0.16" height="0.16" material="blending:additive; transparent:true; depthWrite:false; shader:flat; opacity:0"
+          animation="property: material.opacity; from: 0; to: 0.55; dur: 1100; dir: alternate; loop: true; easing: easeInOutSine"></a-image>
+      </a-entity>
       <a-entity id="burst"></a-entity>
     </a-entity>
   </a-entity>
@@ -147,13 +154,13 @@ AFRAME.registerComponent("star4", {
 /* ============ Programas: posición sobre la ilustración, frase, color y música ============
    Coordenadas: ancho de la imagen = 1, origen en el centro, +y hacia arriba. */
 const PROGS = [
-  { name: "Cabello",       x: -0.014, y:  0.166, color: "#ffd77a",
-    phrase: "Cada mechón cuenta una historia. Hoy tú escribes la tuya con tus propias manos." },
-  { name: "Maquillaje",    x: -0.226, y:  0.004, color: "#f0abfc",
-    phrase: "Descubriste que el color no se aplica, se siente. Tu talento ya brilla." },
-  { name: "Cuidado de la piel", x: 0.204, y: 0.004, color: "#a5f3fc",
+  { name: "Estilismo Integral", x: -0.014, y:  0.166, color: "#ffd77a",
+    phrase: "Cada mechón cuenta una historia, y hoy tú la escribes con tus propias manos." },
+  { name: "Maquillaje Social y Decorativo", x: -0.226, y:  0.004, color: "#f0abfc",
+    phrase: "Descubriste que el color no se aplica... se siente. Tu talento ya brilla." },
+  { name: "Cosmetología y Estética", x: 0.204, y: 0.004, color: "#a5f3fc",
     phrase: "Aprendiste a cuidar lo más humano: la piel, la confianza y el bienestar de los demás." },
-  { name: "Manos y pies",  x: -0.014, y: -0.152, color: "#ffffff",
+  { name: "Cuidado Estético de Manos y Pies", x: -0.014, y: -0.152, color: "#ffffff",
     phrase: "Con detalle, paciencia y cariño, convertiste cada paso en un arte." }
 ];
 
@@ -246,10 +253,39 @@ let found = false, started = false, sceneReady = false, shownDone = false, lostT
 const touched = new Set();
 
 /* ---------- Construcción de los 4 programas ---------- */
-const haloEls = [], gemEls = [];
+
+
+/* ============ Profundidad: 2 planos (ilustración al fondo, rombo al frente) ============ */
+const CAM_D = 1.6, AP = 1.04;                              // AP: cuánto más grande que la impresión se ve la ilustración
+const fz = (z) => AP * (CAM_D - z) / CAM_D;                // factor para que un objeto a profundidad z calce con el dibujo
+const BACK_Z = -0.05, FRONT_Z = 0.15, GLOW_Z = 0.02;
+document.querySelector("#backImg").setAttribute("src", "./m3_fondo.webp");
+document.querySelector("#diaImg").setAttribute("src", "./m3_rombo.webp");
+const backEl = document.querySelector("#back"), frontEl = document.querySelector("#front");
+backEl.setAttribute("position", "0 0 " + BACK_Z); backEl.setAttribute("scale", fz(BACK_Z) + " " + fz(BACK_Z) + " 1");
+const DIA = { x: -0.0131, y: 0.01216 };                    // centro del rombo sobre la ilustración
+const KF = fz(FRONT_Z);
+frontEl.setAttribute("scale", KF + " " + KF + " " + KF);
+frontEl.dataset.px = DIA.x * KF; frontEl.dataset.py = DIA.y * KF;
+frontEl.setAttribute("position", frontEl.dataset.px + " " + frontEl.dataset.py + " 0.003");
+frontEl.setAttribute("animation__rise", "property: position; to: " + frontEl.dataset.px + " " + frontEl.dataset.py + " " + FRONT_Z + "; dur: 1500; easing: easeOutElastic; startEvents: rise");
+function riseLayers() { frontEl.setAttribute("position", frontEl.dataset.px + " " + frontEl.dataset.py + " 0.003"); frontEl.emit("rise"); }
+
+/* texturas de luz */
+function glowTex(color, ring) {
+  const c = document.createElement("canvas"); c.width = c.height = 256; const x = c.getContext("2d");
+  if (ring) { x.strokeStyle = color; x.lineWidth = 7; x.shadowColor = color; x.shadowBlur = 18; x.beginPath(); x.arc(128, 128, 96, 0, Math.PI * 2); x.stroke(); }
+  else { const g = x.createRadialGradient(128, 128, 4, 128, 128, 128); g.addColorStop(0, color); g.addColorStop(.35, color + "66"); g.addColorStop(1, color + "00"); x.fillStyle = g; x.fillRect(0, 0, 256, 256); }
+  return c.toDataURL("image/png");
+}
+document.querySelector("#diaGlow").setAttribute("src", glowTex("#ffffff"));
+document.querySelector("#diaFlare").setAttribute("src", glowTex("#e9ddff"));
+
+const glowEls = [], rippleEls = [];
 PROGS.forEach((p, i) => {
+  const f = fz(GLOW_Z);
   const g = document.createElement("a-entity");
-  g.setAttribute("position", p.x + " " + p.y + " 0.02");
+  g.setAttribute("position", (p.x * f) + " " + (p.y * f) + " " + GLOW_Z);
 
   const hit = document.createElement("a-plane");               // zona táctil invisible
   hit.setAttribute("class", "hit"); hit.setAttribute("width", 0.3); hit.setAttribute("height", 0.27);
@@ -257,51 +293,49 @@ PROGS.forEach((p, i) => {
   hit.addEventListener("click", () => selectProg(i));
   g.appendChild(hit);
 
-  const gem = document.createElement("a-sphere");              // gema que invita a tocar
-  gem.setAttribute("radius", 0.016); gem.setAttribute("position", "0 0 0.1");
-  gem.setAttribute("material", "color:" + p.color + "; emissive:" + p.color + "; emissiveIntensity:0.9; metalness:0.2; roughness:0.2");
-  gem.setAttribute("animation", "property: position; from: 0 0 0.09; to: 0 0 0.125; dur: 1100; dir: alternate; loop: true; easing: easeInOutSine");
-  g.appendChild(gem); gemEls.push(gem);
+  const gl = document.createElement("a-image");                // resplandor que respira
+  gl.setAttribute("src", glowTex(p.color)); gl.setAttribute("width", 0.3); gl.setAttribute("height", 0.3);
+  gl.setAttribute("position", "0 0 0.002");
+  gl.setAttribute("material", "blending:additive; transparent:true; depthWrite:false; shader:flat; opacity:0.05");
+  gl.setAttribute("animation__p", "property: material.opacity; from: 0.04; to: 0.24; dur: 1500; dir: alternate; loop: true; delay:" + (i * 350) + "; easing: easeInOutSine");
+  g.appendChild(gl); glowEls.push(gl);
 
-  [0, 0.45].forEach((d, k) => {                                  // ondas "toca aquí"
-    const r = document.createElement("a-ring");
-    r.setAttribute("radius-inner", 0.014); r.setAttribute("radius-outer", 0.02);
-    r.setAttribute("position", "0 0 0.1");
-    r.setAttribute("material", "color:" + p.color + "; shader:flat; transparent:true; opacity:0");
-    r.setAttribute("animation__s", "property: scale; from: 0.5 0.5 0.5; to: 3.2 3.2 3.2; dur: 1800; delay:" + (d*1000) + "; loop: true; easing: easeOutQuad");
-    r.setAttribute("animation__o", "property: material.opacity; from: 0.9; to: 0; dur: 1800; delay:" + (d*1000) + "; loop: true; easing: easeInQuad");
-    r.setAttribute("class", "wave");
-    g.appendChild(r);
-  });
-
-  const halo = document.createElement("a-torus");               // aro del programa activo
-  halo.setAttribute("radius", 0.115); halo.setAttribute("radius-tubular", 0.0035); halo.setAttribute("segments-tubular", 64);
-  halo.setAttribute("position", "0 0 0.06"); halo.setAttribute("visible", false);
-  halo.setAttribute("material", "color:" + p.color + "; shader:flat; transparent:true; opacity:0.95");
-  halo.setAttribute("animation", "property: rotation; from: 60 0 0; to: 60 0 360; dur: 5000; loop: true; easing: linear");
-  g.appendChild(halo); haloEls.push(halo);
+  const rp = document.createElement("a-image");                // onda "toca aquí"
+  rp.setAttribute("src", glowTex(p.color, true)); rp.setAttribute("width", 0.2); rp.setAttribute("height", 0.2);
+  rp.setAttribute("position", "0 0 0.004");
+  rp.setAttribute("material", "blending:additive; transparent:true; depthWrite:false; shader:flat; opacity:0");
+  rp.setAttribute("animation__s", "property: scale; from: 0.35 0.35 0.35; to: 1.5 1.5 1.5; dur: 2200; delay:" + (i * 500) + "; loop: true; easing: easeOutQuad");
+  rp.setAttribute("animation__o", "property: material.opacity; from: 0.9; to: 0; dur: 2200; delay:" + (i * 500) + "; loop: true; easing: easeInQuad");
+  g.appendChild(rp); rippleEls.push(rp);
 
   progs.appendChild(g);
 });
 
+/* destello al tocar: unos puntos de luz que se dispersan */
 function sparkBurst(p) {
-  for (let k = 0; k < 14; k++) {
-    const s = document.createElement("a-entity");
-    const a = Math.random() * Math.PI * 2, d = 0.08 + Math.random() * 0.12, sc = 0.012 + Math.random() * 0.016;
-    s.setAttribute("star4", "color: " + (k % 2 ? "#ffd77a" : p.color));
-    s.setAttribute("position", p.x + " " + p.y + " 0.12");
-    s.setAttribute("scale", sc + " " + sc + " " + sc);
-    s.setAttribute("animation__m", "property: position; to: " + (p.x + Math.cos(a)*d) + " " + (p.y + Math.sin(a)*d) + " " + (0.14 + Math.random()*0.08) + "; dur: 1100; easing: easeOutCubic");
-    s.setAttribute("animation__f", "property: scale; to: 0.001 0.001 0.001; dur: 1100; easing: easeInQuad");
-    burst.appendChild(s);
-    setTimeout(() => s.remove(), 1200);
+  const f = fz(GLOW_Z);
+  const fl = document.createElement("a-image");
+  fl.setAttribute("src", glowTex(p.color)); fl.setAttribute("width", 0.34); fl.setAttribute("height", 0.34);
+  fl.setAttribute("position", (p.x * f) + " " + (p.y * f) + " " + (GLOW_Z + 0.01));
+  fl.setAttribute("material", "blending:additive; transparent:true; depthWrite:false; shader:flat; opacity:0.6");
+  fl.setAttribute("animation__s", "property: scale; from: 0.4 0.4 0.4; to: 1.7 1.7 1.7; dur: 700; easing: easeOutCubic");
+  fl.setAttribute("animation__o", "property: material.opacity; from: 0.6; to: 0; dur: 700; easing: easeInQuad");
+  burst.appendChild(fl); setTimeout(() => fl.remove(), 800);
+  for (let k = 0; k < 10; k++) {
+    const d = document.createElement("a-image"), a = Math.random() * Math.PI * 2, dist = 0.07 + Math.random() * 0.1, sz = 0.02 + Math.random() * 0.02;
+    d.setAttribute("src", glowTex(k % 2 ? "#ffd77a" : p.color)); d.setAttribute("width", sz); d.setAttribute("height", sz);
+    d.setAttribute("position", (p.x * f) + " " + (p.y * f) + " " + (GLOW_Z + 0.02));
+    d.setAttribute("material", "blending:additive; transparent:true; depthWrite:false; shader:flat; opacity:1");
+    d.setAttribute("animation__m", "property: position; to: " + (p.x * f + Math.cos(a) * dist) + " " + (p.y * f + Math.sin(a) * dist) + " " + (GLOW_Z + 0.05) + "; dur: 1000; easing: easeOutCubic");
+    d.setAttribute("animation__o", "property: material.opacity; from: 1; to: 0; dur: 1000; easing: easeInQuad");
+    burst.appendChild(d); setTimeout(() => d.remove(), 1100);
   }
 }
 
 /* ============ Voz + subtítulos ============
    Por defecto habla la voz en español del celular. Para usar locuciones grabadas, escribe la ruta de cada audio en VOICE_URLS
    (por ejemplo "./voz_cabello.mp3") y se usarán en lugar de la voz del celular. */
-const VOICE_URLS = ["", "", "", ""];
+const VOICE_URLS = ["./voz_estilismo.mp3", "./voz_maquillaje.mp3", "./voz_cosmetologia.mp3", "./voz_manos.mp3"];
 const subEl = document.querySelector("#sub"), subName = document.querySelector("#subName"), subTxt = document.querySelector("#subTxt");
 let voiceAudio = null, subTimer = null, subHide = null, pickedVoice = null;
 function pickVoice() {
@@ -327,7 +361,7 @@ function speak(i) {
   subEl.classList.add("on");
   let lit = 0, startedAt = performance.now(), ended = false;
   const light = (n) => { while (lit < Math.min(n, spans.length)) spans[lit++].classList.add("lit"); };
-  const estTotal = p.phrase.length * 72 + 600;                     // estimación por si el celular no avisa cada palabra
+  let estTotal = p.phrase.length * 72 + 600;                        // estimación por si no hay aviso palabra por palabra
   const finish = () => {
     if (ended) return; ended = true; clearInterval(subTimer); light(spans.length);
     musicLevel(0.9, 0.8);
@@ -337,21 +371,29 @@ function speak(i) {
     light(Math.floor(((performance.now() - startedAt) / estTotal) * spans.length));
     if (performance.now() - startedAt > estTotal + 4000) finish();
   }, 120);
-  musicLevel(0.22, 0.4);                                           // la música baja mientras habla la voz
-  if (VOICE_URLS[i]) {
-    voiceAudio = new Audio(VOICE_URLS[i]); voiceAudio.volume = 1; voiceAudio.onended = finish;
-    voiceAudio.onloadedmetadata = () => { startedAt = performance.now(); };
-    voiceAudio.play().catch(finish);
-  } else if (window.speechSynthesis) {
-    const u = new SpeechSynthesisUtterance(p.phrase);
+  musicLevel(0.22, 0.4);                                            // la música baja mientras habla la voz
+  const viaTTS = () => {
+    if (ended) return;
+    startedAt = performance.now(); estTotal = p.phrase.length * 72 + 600;
+    if (!window.speechSynthesis) { setTimeout(finish, estTotal); return; }
+    const u = new SpeechSynthesisUtterance(p.name + ". " + p.phrase);
     u.lang = pickedVoice ? pickedVoice.lang : "es-CO"; if (pickedVoice) u.voice = pickedVoice;
     u.rate = 0.92; u.pitch = 1.02; u.volume = 1;
-    u.onboundary = (e) => { if (e.name === "word" || e.charIndex != null) { const k = p.phrase.slice(0, e.charIndex).split(/\s+/).filter(Boolean).length; light(k + 1); } };
+    u.onboundary = (e) => { const k = (p.name + ". " + p.phrase).slice(0, e.charIndex).split(/\s+/).filter(Boolean).length - p.name.split(/\s+/).length; if (k >= 0) light(k + 1); };
     u.onend = finish; u.onerror = finish;
     speechSynthesis.speak(u);
-  } else {
-    setTimeout(finish, estTotal);
-  }
+  };
+  if (VOICE_URLS[i]) {                                              // locución grabada; si no carga, habla la voz del celular
+    const au = new Audio(VOICE_URLS[i]); voiceAudio = au; au.volume = 1;
+    let bad = false; const fallback = () => { if (bad) return; bad = true; if (voiceAudio === au) voiceAudio = null; viaTTS(); };
+    au.onerror = fallback; au.onended = finish;
+    au.onloadedmetadata = () => {
+      if (!isFinite(au.duration) || au.duration < 1) { fallback(); return; }
+      const lead = Math.min(1600, p.name.length * 62);               // al inicio la voz dice el nombre del programa
+      startedAt = performance.now() + lead; estTotal = Math.max(1200, au.duration * 1000 - lead - 500);
+    };
+    const pr = au.play(); if (pr && pr.catch) pr.catch(fallback);
+  } else viaTTS();
 }
 
 function selectProg(i) {
@@ -359,10 +401,13 @@ function selectProg(i) {
   audioInit();
   active = i; touched.add(i);
   const p = PROGS[i];
-  haloEls.forEach((h, k) => h.setAttribute("visible", k === i));
-  gemEls.forEach((gm, k) => gm.setAttribute("scale", k === i ? "1.7 1.7 1.7" : "1 1 1"));
-  // quitar las ondas del programa ya tocado
-  progs.children[i].querySelectorAll(".wave").forEach(w => w.setAttribute("visible", false));
+  glowEls.forEach((gl, k) => {                                    // el elegido brilla fuerte; los demás quedan suaves
+    gl.removeAttribute("animation__p");
+    gl.setAttribute("animation__p", k === i
+      ? "property: material.opacity; from: 0.3; to: 0.55; dur: 1200; dir: alternate; loop: true; easing: easeInOutSine"
+      : "property: material.opacity; from: 0.03; to: 0.14; dur: 1500; dir: alternate; loop: true; delay:" + (k * 300) + "; easing: easeInOutSine");
+  });
+  if (touched.has(i)) rippleEls[i].setAttribute("visible", false);  // las ondas ya cumplieron su trabajo en ese programa
   sparkBurst(p);
   startTheme(i);
   musicLevel(0.9, 0.3);
@@ -411,7 +456,7 @@ target.addEventListener("targetFound", () => {
   found = true; clearTimeout(lostTimer);
   reticle.classList.add("found");
   badge.classList.add("ok"); badge.textContent = "✓ ¡Imagen detectada!";
-  world.setAttribute("scale", "0.01 0.01 0.01"); world.emit("pop");
+  riseLayers();
   if (active < 0) setTip("Toca cada programa para escuchar su música y su mensaje");
   else { setTip("<b>" + PROGS[active].name + "</b><br>Toca otro programa para escuchar su mensaje"); musicLevel(0.9, 0.8); }
   if (navigator.vibrate) navigator.vibrate(60);
@@ -424,5 +469,6 @@ target.addEventListener("targetLost", () => {
   clearTimeout(lostTimer); lostTimer = setTimeout(() => musicLevel(0, 1.0), 2500);   // la música se apaga si se aleja la imagen
 });
 </script>
+<script src="./qrscan.js"></script>
 </body>
 </html>

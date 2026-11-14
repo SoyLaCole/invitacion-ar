@@ -99,7 +99,7 @@ AFRAME.registerComponent("note3d", {
   #startBtn:disabled { opacity:.5; }
 
   /* ---------- Recuadro guía + tooltip (siempre en formato tooltip) ---------- */
-  #reticle { position:fixed; z-index:9; left:50%; top:44%; width:72vw; max-width:360px; aspect-ratio:3/2; transform:translate(-50%,-50%);
+  #reticle { position:fixed; z-index:9; left:50%; top:44%; width:68vw; max-width:330px; aspect-ratio:1/1; transform:translate(-50%,-50%);
     border:3px dashed rgba(255,255,255,.9); border-radius:18px; box-shadow:0 0 0 2px rgba(91,33,182,.7); pointer-events:none; display:none; transition:border-color .25s, box-shadow .25s; }
   #reticle.found { border-color:transparent; box-shadow:none; }   /* el recuadro se oculta pero el tooltip se queda */
   #tip { position:absolute; left:50%; top:calc(100% + 16px); transform:translateX(-50%); width:max-content; max-width:80vw; box-sizing:border-box; text-align:center;
@@ -114,6 +114,7 @@ AFRAME.registerComponent("note3d", {
   #close { position:absolute; top:14px; right:14px; z-index:31; width:44px; height:44px; border-radius:50%; border:1px solid #fff; background:rgba(76,29,149,.9); color:#fff; font-size:24px; line-height:1; }
   #debug { position:fixed; top:8px; left:8px; z-index:10; color:#c4b5fd; font:11px monospace; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 </head>
 <body>
 <div id="start">
@@ -379,5 +380,6 @@ target.addEventListener("targetLost", () => {
   clearTimeout(lostTimer); lostTimer = setTimeout(() => songLevel(0, 1.0), 2500);
 });
 </script>
+<script src="./qrscan.js"></script>
 </body>
 </html>
