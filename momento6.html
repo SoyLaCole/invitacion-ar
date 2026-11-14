@@ -121,6 +121,12 @@ AFRAME.registerComponent("star4", {
     <a-light type="directional" color="#fff4e0" intensity="0.55" position="-0.6 1 1.5"></a-light>
     <a-light type="point" color="#b388ff" intensity="0.35" distance="1.2" position="0.3 -0.2 0.5"></a-light>
 
+    <!-- Plano de fondo: las nubes de la ilustración (un poco más grandes que la impresión para taparla), detrás del televisor -->
+    <a-entity id="cloudsBack" position="0 0 -0.1" scale="1.105 1.105 1.105">
+      <a-image id="cloudsImg" width="1" height="0.6469" material="shader:flat; transparent:true; alphaTest:0.01"></a-image>
+      <a-entity id="twinkles"></a-entity>
+    </a-entity>
+
     <!-- resplandor mágico detrás del televisor -->
     <a-image id="glow" position="-0.0099 -0.0198 -0.01" width="1.1" height="0.9" material="blending:additive; transparent:true; depthWrite:false; shader:flat"
       animation="property: scale; from: 0.92 0.92 0.92; to: 1.08 1.08 1.08; dur: 2200; dir: alternate; loop: true; easing: easeInOutSine"></a-image>
@@ -348,9 +354,27 @@ function startAR() {
 }
 startBtn.addEventListener("click", () => { startBtn.style.display = "none"; startAR(); });
 
+/* ---- Nubes al fondo: se separan del papel y titilan las estrellas ---- */
+const cloudsBack = document.querySelector("#cloudsBack"), twEl = document.querySelector("#twinkles");
+document.querySelector("#cloudsImg").setAttribute("src", "./m4_nubes.webp");
+cloudsBack.setAttribute("animation__rise", "property: position; from: 0 0 -0.005; to: 0 0 -0.1; dur: 1500; easing: easeOutElastic; startEvents: rise");
+(function () {
+  const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d");
+  const g = x.createRadialGradient(64, 64, 2, 64, 64, 64); g.addColorStop(0, "#ffffff"); g.addColorStop(.3, "#ffe9b0aa"); g.addColorStop(1, "#ffe9b000"); x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+  const url = c.toDataURL("image/png");
+  [[497,148],[686,148],[1128,163],[1260,500],[213,300],[253,646]].forEach((p, i) => {
+    const e = document.createElement("a-image");
+    e.setAttribute("src", url); e.setAttribute("width", 0.09); e.setAttribute("height", 0.09);
+    e.setAttribute("position", ((p[0] - 732) / 1464) + " " + ((473.5 - p[1]) / 1464) + " 0.004");
+    e.setAttribute("material", "blending:additive; transparent:true; depthWrite:false; shader:flat; opacity:0");
+    e.setAttribute("animation__p", "property: material.opacity; from: 0; to: 0.85; dur: " + (900 + i * 240) + "; dir: alternate; loop: true; delay:" + (i * 280) + "; easing: easeInOutSine");
+    twEl.appendChild(e);
+  });
+})();
+
 target.addEventListener("targetFound", () => {
   found = true;
-  tvEl.setAttribute("scale", "0.01 0.01 0.01"); tvEl.emit("pop");      // el televisor "se infla" al detectarlo
+  tvEl.setAttribute("scale", "0.01 0.01 0.01"); tvEl.emit("pop"); cloudsBack.setAttribute("position", "0 0 -0.005"); cloudsBack.emit("rise");      // el televisor "se infla" al detectarlo
   clearTimeout(lostTimer);
   reticle.classList.add("found");
   badge.classList.add("ok"); badge.textContent = "✓ ¡Imagen detectada!";
