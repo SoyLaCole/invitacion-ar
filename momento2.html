@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Momento 2 · Donde todo comenzó</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script>
+(function(){
+  var md=navigator.mediaDevices; if(!md||!md.getUserMedia) return;
+  var orig=md.getUserMedia.bind(md);
+  md.getUserMedia=function(c){
+    if(c&&c.video){ if(c.video===true) c.video={}; c.video.width={ideal:1920}; c.video.height={ideal:1080}; }
+    return orig(c);
+  };
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+<script>
+/* Caja redondeada con volumen (extrusión con bisel) */
+AFRAME.registerComponent("rrect", {
+  schema: { w:{default:1}, h:{default:1}, r:{default:0.05}, depth:{default:0.05}, bevel:{default:0.008}, color:{default:"#fff"}, rough:{default:0.55}, metal:{default:0.1} },
+  init: function () {
+    const T = AFRAME.THREE, d = this.data, b = d.bevel;
+    const w = d.w - 2*b, h = d.h - 2*b, r = Math.max(0.001, d.r - b), x = -w/2, y = -h/2;
+    const sh = new T.Shape();
+    sh.moveTo(x + r, y); sh.lineTo(x + w - r, y); sh.quadraticCurveTo(x + w, y, x + w, y + r);
+    sh.lineTo(x + w, y + h - r); sh.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    sh.lineTo(x + r, y + h); sh.quadraticCurveTo(x, y + h, x, y + h - r);
+    sh.lineTo(x, y + r); sh.quadraticCurveTo(x, y, x + r, y);
+    const geo = new T.ExtrudeGeometry(sh, { depth: d.depth, bevelEnabled: b > 0, bevelThickness: b, bevelSize: b, bevelSegments: 3, curveSegments: 10 });
+    const mat = new T.MeshStandardMaterial({ color: d.color, roughness: d.rough, metalness: d.metal });
+    this.el.setObject3D("mesh", new T.Mesh(geo, mat));
+  }
+});
+/* Destello de 4 puntas */
+AFRAME.registerComponent("star4", {
+  schema: { color:{default:"#ffd77a"}, inner:{default:0.22} },
+  init: function () {
+    const T = AFRAME.THREE, sh = new T.Shape();
+    for (let k = 0; k < 8; k++) {
+      const a = Math.PI/2 + k*Math.PI/4, rad = (k % 2 === 0) ? 1 : this.data.inner;
+      const px = Math.cos(a)*rad, py = Math.sin(a)*rad;
+      if (k === 0) sh.moveTo(px, py); else sh.lineTo(px, py);
+    }
+    sh.closePath();
+    const mat = new T.MeshBasicMaterial({ color: this.data.color, side: T.DoubleSide, transparent: true });
+    this.el.setObject3D("mesh", new T.Mesh(new T.ShapeGeometry(sh), mat));
+  }
+});
+</script>
+<script>
+/* Nota musical 3D: variant 0 = corchea, 1 = dos corcheas unidas */
+AFRAME.registerComponent("note3d", {
+  schema: { color:{default:"#ffd77a"}, variant:{default:0} },
+  init: function () {
+    const T = AFRAME.THREE, shapes = [];
+    const head = (cx, cy) => { const s = new T.Shape(); s.absellipse(cx, cy, 0.62, 0.43, 0, Math.PI*2, false, -0.35); return s; };
+    const stem = (x, y0, y1) => { const s = new T.Shape(); s.moveTo(x, y0); s.lineTo(x+0.17, y0); s.lineTo(x+0.17, y1); s.lineTo(x, y1); s.closePath(); return s; };
+    if (this.data.variant === 0) {
+      shapes.push(head(0, 0), stem(0.46, 0, 2.7));
+      const f = new T.Shape(); f.moveTo(0.63, 2.7); f.bezierCurveTo(1.05, 2.35, 1.8, 2.0, 1.4, 0.95); f.bezierCurveTo(1.5, 1.9, 1.0, 2.1, 0.63, 1.95); f.closePath(); shapes.push(f);
+    } else {
+      shapes.push(head(0, 0), head(1.75, -0.35), stem(0.46, 0, 2.6), stem(2.21, -0.35, 2.25));
+      const b = new T.Shape(); b.moveTo(0.46, 2.6); b.lineTo(2.38, 2.25); b.lineTo(2.38, 1.75); b.lineTo(0.46, 2.1); b.closePath(); shapes.push(b);
+    }
+    const geo = new T.ExtrudeGeometry(shapes, { depth: 0.3, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.05, bevelSegments: 2, curveSegments: 14 });
+    geo.center();
+    const mat = new T.MeshStandardMaterial({ color: this.data.color, emissive: this.data.color, emissiveIntensity: 0.55, roughness: 0.35, metalness: 0.3 });
+    this.el.setObject3D("mesh", new T.Mesh(geo, mat));
+  }
+});
+</script>
+<style>
+  html { background:#1c0a33; }
+  body { background:transparent; }
+  html, body { margin:0; height:100%; overflow:hidden; font-family:'Plus Jakarta Sans', system-ui, sans-serif; }
+  button { font-family:inherit; }
+
+  /* ---------- Portada con cargador del video ---------- */
+  #start { position:fixed; inset:0; z-index:20; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px;
+    background: radial-gradient(circle at 50% 30%, #5b21b6 0%, #1c0a33 72%); color:#fff; }
+  #start h1 { font-size:28px; font-weight:700; letter-spacing:.2px; margin:0 0 10px; }
+  #start p  { color:#e9ddff; margin:0 0 22px; max-width:300px; line-height:1.5; font-size:15px; }
+  #loadwrap { width:min(80vw,320px); margin:0 0 26px; text-align:center; transition:opacity .5s; }
+  #pct { font-size:64px; font-weight:800; line-height:1; letter-spacing:-1px; color:#fff; }
+  #loadbar { height:12px; border-radius:8px; background:rgba(255,255,255,.22); overflow:hidden; margin-top:14px; }
+  #loadfill { height:100%; width:0%; border-radius:8px; background:#fff; transition:width .15s linear; }
+  #loadtxt { margin-top:10px; font-size:14px; font-weight:600; color:#e9ddff; }
+  #startBtn { font-size:17px; font-weight:600; padding:14px 30px; border-radius:30px; border:1px solid #fff; background:rgba(255,255,255,.14); color:#fff; letter-spacing:.3px; min-width:220px; }
+  #startBtn:disabled { opacity:.5; }
+
+  /* ---------- Recuadro guía + tooltip (siempre en formato tooltip) ---------- */
+  #reticle { position:fixed; z-index:9; left:50%; top:44%; width:72vw; max-width:360px; aspect-ratio:3/2; transform:translate(-50%,-50%);
+    border:3px dashed rgba(255,255,255,.9); border-radius:18px; box-shadow:0 0 0 2px rgba(91,33,182,.7); pointer-events:none; display:none; transition:border-color .25s, box-shadow .25s; }
+  #reticle.found { border-color:transparent; box-shadow:none; }   /* el recuadro se oculta pero el tooltip se queda */
+  #tip { position:absolute; left:50%; top:calc(100% + 16px); transform:translateX(-50%); width:max-content; max-width:80vw; box-sizing:border-box; text-align:center;
+    background:#fff; color:#4c1d95; font-weight:600; font-size:14px; line-height:1.35; padding:10px 16px; border-radius:14px; box-shadow:0 6px 18px rgba(28,10,51,.45); }
+  #tip::before { content:""; position:absolute; left:50%; top:-9px; margin-left:-10px; border-left:10px solid transparent; border-right:10px solid transparent; border-bottom:10px solid #fff; }
+  #badge { position:fixed; z-index:12; top:16px; left:50%; transform:translateX(-50%); padding:9px 18px; border-radius:24px; font-weight:600; font-size:15px;
+    background:rgba(76,29,149,.88); color:#fff; border:1px solid #fff; display:none; pointer-events:none; white-space:nowrap; }
+  #badge.ok { background:#fff; color:#4c1d95; border-color:#c4b5fd; }
+
+  #full { position:fixed; inset:0; z-index:30; background:#000; display:none; align-items:center; justify-content:center; }
+  #full video { width:100%; height:100%; object-fit:contain; background:#000; }
+  #close { position:absolute; top:14px; right:14px; z-index:31; width:44px; height:44px; border-radius:50%; border:1px solid #fff; background:rgba(76,29,149,.9); color:#fff; font-size:24px; line-height:1; }
+  #debug { position:fixed; top:8px; left:8px; z-index:10; color:#c4b5fd; font:11px monospace; }
+</style>
+</head>
+<body>
+<div id="start">
+  <h1>Momento 2</h1>
+  <p id="startMsg">Preparando la experiencia…</p>
+  <div id="loadwrap">
+    <div id="pct">0%</div>
+    <div id="loadbar"><div id="loadfill"></div></div>
+    <div id="loadtxt">Cargando…</div>
+  </div>
+  <button id="startBtn" style="display:none">Reintentar</button>
+</div>
+<div id="reticle"><div id="tip">Abriendo cámara…</div></div>
+<div id="badge">Buscando la imagen…</div>
+<div id="debug"></div>
+
+<a-scene id="scene"
+  mindar-image="imageTargetSrc: ./momento2v2.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no; filterMinCF:0.0001; filterBeta: 0.001; warmupTolerance: 5; missTolerance: 10;"
+  color-space="sRGB" renderer="colorManagement: true"
+  vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+  <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+  <!-- Marcador: ancho = 1, alto = 622/1000 = 0.622, origen = centro de la imagen (la fachada) -->
+  <a-entity id="target" mindar-image-target="targetIndex: 0">
+    <a-light type="ambient" color="#ffffff" intensity="0.8"></a-light>
+    <a-light type="directional" color="#ffffff" intensity="0.7" position="-0.5 1 1.5"></a-light>
+
+    <a-entity id="world" scale="0.01 0.01 0.01"
+      animation__pop="property: scale; from: 0.01 0.01 0.01; to: 1 1 1; dur: 1000; easing: easeOutElastic; startEvents: pop">
+
+      <!-- resplandor dorado sobre el letrero -->
+      <a-image id="glow" position="-0.119 -0.02 0.03" width="0.4" height="0.2" material="blending:additive; transparent:true; depthWrite:false; shader:flat"
+        animation="property: scale; from: 0.9 0.9 0.9; to: 1.12 1.12 1.12; dur: 1500; dir: alternate; loop: true; easing: easeInOutSine"></a-image>
+
+      <!-- anillo plateado que rodea el edificio -->
+      <a-entity position="0 -0.01 0.1" animation="property: rotation; from: 0 0 0; to: 0 360 0; dur: 11000; loop: true; easing: linear">
+        <a-torus radius="0.43" radius-tubular="0.0045" segments-tubular="80" rotation="0 0 8" scale="1 0.42 1"
+          material="color:#e8e2fa; metalness:0.8; roughness:0.25; emissive:#b9a8ee; emissiveIntensity:0.5"></a-torus>
+      </a-entity>
+
+      <a-entity id="lights"></a-entity>   <!-- luz en cada ventana -->
+      <a-entity id="notes"></a-entity>    <!-- notas musicales -->
+      <a-entity id="sparks"></a-entity>
+    </a-entity>
+  </a-entity>
+</a-scene>
+
+<script>
+/* ============ Canción ============
+   Para usar la canción real, sube el archivo (p. ej. cancion.mp3) y escribe aquí su ruta: AUDIO_URL = "./cancion.mp3".
+   Mientras tanto suena una melodía sintetizada de prueba. */
+const AUDIO_URL = "";
+const mf = (m) => 440 * Math.pow(2, (m - 69) / 12);
+const THEME = { tempo: 92, wave: "triangle", dec: 0.9,
+  steps: [76,null,79,null,81,79,76,null,74,null,77,null,79,77,74,null,72,null,76,null,79,76,72,null,74,null,71,null,72,null,null,null],
+  pads: [[48,55,64],[45,52,60],[41,48,57],[43,50,59]] };
+let ac = null, master = null, songNode = null, songTimer = null, songAudio = null, playing = false;
+function audioInit() {
+  if (!AUDIO_URL) {
+    if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); master = ac.createGain(); master.gain.value = 0.9; master.connect(ac.destination); }
+    if (ac.state === "suspended") ac.resume();
+  }
+}
+function tone(dest, freq, t, dur, type, vol, atk) {
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + atk); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(dest); o.start(t); o.stop(t + dur + 0.05);
+}
+function startSong() {
+  if (playing) return;
+  playing = true;
+  if (AUDIO_URL) {
+    songAudio = new Audio(AUDIO_URL); songAudio.loop = true; songAudio.volume = 0.9;
+    songAudio.play().catch(() => { playing = false; });
+    return;
+  }
+  audioInit();
+  songNode = ac.createGain(); songNode.gain.setValueAtTime(0, ac.currentTime); songNode.gain.linearRampToValueAtTime(1, ac.currentTime + 1.5); songNode.connect(master);
+  const stepDur = 60 / THEME.tempo / 2; let step = 0, next = ac.currentTime + 0.1;
+  const tick = () => {
+    while (next < ac.currentTime + 0.5) {
+      const n = THEME.steps[step % THEME.steps.length];
+      if (n != null) { tone(songNode, mf(n), next, THEME.dec, THEME.wave, 0.16, 0.012); tone(songNode, mf(n) * 2.01, next, THEME.dec * 0.6, "sine", 0.04, 0.01); }
+      if (step % 8 === 0) THEME.pads[Math.floor(step / 8) % THEME.pads.length].forEach(m => tone(songNode, mf(m), next, stepDur * 8.5, "sine", 0.05, 0.6));
+      next += stepDur; step++;
+    }
+  };
+  tick(); songTimer = setInterval(tick, 150);
+}
+function songLevel(v, secs) {
+  if (AUDIO_URL) { if (songAudio) songAudio.volume = v; return; }
+  if (!ac || !master) return;
+  const now = ac.currentTime; master.gain.cancelScheduledValues(now); master.gain.setValueAtTime(master.gain.value, now); master.gain.linearRampToValueAtTime(v, now + secs);
+}
+window.addEventListener("pointerdown", audioInit, { passive: true });
+</script>
+
+<script>
+const scene = document.querySelector("#scene");
+const target = document.querySelector("#target");
+const world = document.querySelector("#world");
+const notesEl = document.querySelector("#notes"), lightsEl = document.querySelector("#lights"), sparksEl = document.querySelector("#sparks");
+const tip = document.querySelector("#tip");
+const reticle = document.querySelector("#reticle"), badge = document.querySelector("#badge");
+const dbg = document.querySelector("#debug");
+const startBtn = document.querySelector("#startBtn");
+const pctEl = document.querySelector("#pct"), loadfill = document.querySelector("#loadfill"), loadtxt = document.querySelector("#loadtxt");
+const setTip = (html) => { tip.innerHTML = html; };
+let found = false, started = false, sceneReady = false, shownDone = false, lostTimer = null, noteTimer = null;
+
+/* Ventanas de la fachada (coordenadas sobre la ilustración: ancho = 1, origen al centro) */
+const WINDOWS = [[-0.3028,0.0203],[-0.2477,0.047],[-0.1957,0.0722],[-0.1391,0.1044],[-0.0489,0.1518],[-0.3104,-0.0348],[0.2187,0.0852],[0.2668,0.0585],[0.2072,0.034],[0.2722,0.0034],[0.0833,-0.0715],[0.1613,-0.0906],[0.2217,-0.1059],[0.2699,-0.1174],[-0.1888,-0.1693],[-0.1346,-0.1655],[-0.0772,-0.1609],[-0.0199,-0.1563],[-0.2592,-0.1135],[-0.3685,-0.1441],[-0.2592,-0.1938]];
+const NOTE_COLORS = ["#ffd77a", "#ffe9a8", "#ffffff", "#e9ddff", "#f0abfc"];
+
+/* resplandor del letrero */
+(function () {
+  const g = document.createElement("canvas"); g.width = g.height = 256;
+  const x = g.getContext("2d"), gr = x.createRadialGradient(128,128,8,128,128,128);
+  gr.addColorStop(0,"rgba(255,215,122,.8)"); gr.addColorStop(.5,"rgba(255,190,80,.28)"); gr.addColorStop(1,"rgba(255,190,80,0)");
+  x.fillStyle = gr; x.fillRect(0,0,256,256);
+  document.querySelector("#glow").setAttribute("src", g.toDataURL("image/png"));
+  const gc = document.createElement("canvas"); gc.width = gc.height = 128;
+  const y = gc.getContext("2d"), gg = y.createRadialGradient(64,64,2,64,64,64);
+  gg.addColorStop(0,"rgba(255,236,170,.95)"); gg.addColorStop(.4,"rgba(255,215,122,.4)"); gg.addColorStop(1,"rgba(255,215,122,0)");
+  y.fillStyle = gg; y.fillRect(0,0,128,128); window.__winGlow = gc.toDataURL("image/png");
+})();
+
+/* una luz que late en cada ventana */
+WINDOWS.forEach((w, i) => {
+  const e = document.createElement("a-image");
+  e.setAttribute("src", window.__winGlow); e.setAttribute("width", 0.07); e.setAttribute("height", 0.07);
+  e.setAttribute("position", w[0] + " " + w[1] + " 0.02");
+  e.setAttribute("material", "blending:additive; transparent:true; depthWrite:false; shader:flat; opacity:0");
+  e.setAttribute("animation__p", "property: material.opacity; from: 0.05; to: 0.95; dur: 1300; dir: alternate; loop: true; delay:" + (i * 140) + "; easing: easeInOutSine");
+  lightsEl.appendChild(e);
+});
+
+/* nota que sale de una ventana, sube meciéndose y se desvanece */
+function spawnNote(w, boost) {
+  const e = document.createElement("a-entity");
+  const s = 0.016 + Math.random() * 0.009, v = Math.random() > 0.55 ? 1 : 0, dur = 3200 + Math.random() * 1800;
+  const dx = (Math.random() - 0.5) * 0.12, up = 0.2 + Math.random() * 0.2 + (boost ? 0.05 : 0);
+  e.setAttribute("note3d", "color: " + NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)] + "; variant: " + v);
+  e.setAttribute("position", w[0] + " " + w[1] + " 0.04");
+  e.setAttribute("scale", "0.001 0.001 0.001");
+  e.setAttribute("rotation", "0 " + (Math.random() * 60 - 30) + " " + (Math.random() * 24 - 12));
+  e.setAttribute("animation__up", "property: position; to: " + (w[0] + dx) + " " + (w[1] + up) + " " + (0.14 + Math.random() * 0.08) + "; dur: " + dur + "; easing: easeOutSine");
+  e.setAttribute("animation__in", "property: scale; to: " + s + " " + s + " " + s + "; dur: 500; easing: easeOutBack");
+  e.setAttribute("animation__out", "property: scale; to: 0.001 0.001 0.001; dur: 900; delay: " + (dur - 900) + "; easing: easeInQuad");
+  e.setAttribute("animation__spin", "property: rotation; to: 0 " + (Math.random() > 0.5 ? 55 : -55) + " " + (Math.random() * 24 - 12) + "; dur: " + dur + "; easing: linear");
+  notesEl.appendChild(e);
+  setTimeout(() => e.remove(), dur + 150);
+}
+function noteLoop() {
+  clearTimeout(noteTimer);
+  if (found) spawnNote(WINDOWS[Math.floor(Math.random() * WINDOWS.length)]);
+  noteTimer = setTimeout(noteLoop, playing ? 260 : 800);
+}
+function burstNotes() { for (let k = 0; k < 14; k++) setTimeout(() => spawnNote(WINDOWS[Math.floor(Math.random() * WINDOWS.length)], true), k * 70); }
+
+/* toque en cualquier parte: empieza la canción (el celular exige un toque para dar sonido) */
+window.addEventListener("click", () => {
+  if (!found) return;
+  const first = !playing;
+  startSong(); songLevel(0.9, 0.3);
+  burstNotes();
+  if (first) setTip("¡Disfruta la canción de La Cole! ♪");
+  if (navigator.vibrate) navigator.vibrate(30);
+});
+
+/* ---------- Carga inicial (contador suave) ---------- */
+let shown = 0, tgt = 0;
+function setPct(n) { pctEl.textContent = n + "%"; loadfill.style.width = n + "%"; }
+const sceneTimer = setInterval(() => { if (sceneReady) tgt = 100; else tgt = Math.min(90, tgt + 2); }, 80);
+setInterval(() => {
+  if (shownDone) return;
+  if (shown < tgt) { shown++; setPct(shown); }
+  if (shown >= 100) { shownDone = true; clearInterval(sceneTimer); loadtxt.textContent = "¡Listo! ✓"; setTimeout(maybeStart, 700); }
+}, 28);
+function maybeStart() { if (sceneReady && shownDone && !started) startAR(); }
+if (scene.hasLoaded) { sceneReady = true; } else scene.addEventListener("loaded", () => { sceneReady = true; maybeStart(); });
+
+/* ---------- Inicio automático ---------- */
+function startAR() {
+  started = true;
+  const st = document.querySelector("#start");
+  st.style.transition = "opacity .5s"; st.style.opacity = 0;
+  setTimeout(() => { st.style.display = "none"; }, 500);
+  reticle.style.display = "block"; badge.style.display = "block";
+  setTip("Abriendo cámara…");
+  const fail = (msg, e) => {
+    setTip(msg); dbg.textContent = String(e || "");
+    st.style.display = "flex"; st.style.opacity = 1;
+    document.querySelector("#loadwrap").style.display = "none";
+    document.querySelector("#startMsg").textContent = msg;
+    startBtn.style.display = "inline-block"; startBtn.textContent = "Reintentar";
+    started = false;
+  };
+  try {
+    Promise.resolve(scene.systems["mindar-image-system"].start()).then(() => {
+      if (!found) setTip("Centra la fachada dentro del recuadro");
+    }).catch(e => fail("No se pudo abrir la cámara. Revisa los permisos.", e));
+  } catch (e) { fail("Error al iniciar. Recarga la página.", e); }
+}
+startBtn.addEventListener("click", () => { startBtn.style.display = "none"; startAR(); });
+
+target.addEventListener("targetFound", () => {
+  found = true; clearTimeout(lostTimer);
+  reticle.classList.add("found");
+  badge.classList.add("ok"); badge.textContent = "✓ ¡Imagen detectada!";
+  world.setAttribute("scale", "0.01 0.01 0.01"); world.emit("pop");
+  setTip(playing ? "¡Disfruta la canción de La Cole! ♪" : "Toca la pantalla para escuchar la canción");
+  if (playing) songLevel(0.9, 0.8);
+  noteLoop();
+  if (navigator.vibrate) navigator.vibrate(60);
+});
+target.addEventListener("targetLost", () => {
+  found = false;
+  reticle.classList.remove("found");
+  badge.classList.remove("ok"); badge.textContent = "Buscando la imagen…";
+  setTip("Centra la fachada dentro del recuadro");
+  clearTimeout(lostTimer); lostTimer = setTimeout(() => songLevel(0, 1.0), 2500);
+});
+</script>
+</body>
+</html>

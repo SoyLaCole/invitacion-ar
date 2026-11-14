@@ -108,7 +108,7 @@ AFRAME.registerComponent("star4", {
 <div id="debug"></div>
 
 <a-scene id="scene"
-  mindar-image="imageTargetSrc: ./momento4.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no; filterMinCF:0.0001; filterBeta: 0.001; warmupTolerance: 5; missTolerance: 10;"
+  mindar-image="imageTargetSrc: ./momento4v2.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no; filterMinCF:0.0001; filterBeta: 0.001; warmupTolerance: 5; missTolerance: 10;"
   color-space="sRGB" renderer="colorManagement: true"
   vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
   <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
@@ -121,7 +121,7 @@ AFRAME.registerComponent("star4", {
     <a-light type="point" color="#b388ff" intensity="0.35" distance="1.2" position="0.3 -0.2 0.5"></a-light>
 
     <!-- resplandor mágico detrás del televisor -->
-    <a-image id="glow" position="-0.009 -0.006 -0.01" width="1.05" height="0.85" material="blending:additive; transparent:true; depthWrite:false; shader:flat"
+    <a-image id="glow" position="-0.0099 -0.0198 -0.01" width="1.1" height="0.9" material="blending:additive; transparent:true; depthWrite:false; shader:flat"
       animation="property: scale; from: 0.92 0.92 0.92; to: 1.08 1.08 1.08; dur: 2200; dir: alternate; loop: true; easing: easeInOutSine"></a-image>
 
     <!-- TELEVISOR 3D (se infla al detectar la imagen) -->
@@ -129,56 +129,59 @@ AFRAME.registerComponent("star4", {
       animation__pop="property: scale; from: 0.01 0.01 0.01; to: 1 1 1; dur: 1100; easing: easeOutElastic; startEvents: pop">
 
       <!-- cuerpo -->
-      <a-entity rrect="w:0.545; h:0.385; r:0.05; depth:0.12; bevel:0.012; color:#7a55b8; rough:0.45; metal:0.15" position="-0.009 -0.006 -0.003"></a-entity>
+      <a-entity rrect="w:0.5772; h:0.4064; r:0.045; depth:0.12; bevel:0.012; color:#7a55b8; rough:0.45; metal:0.15" position="-0.0099 -0.0198 -0.003"></a-entity>
       <!-- marco interior y recuadro hundido -->
-      <a-entity rrect="w:0.38; h:0.295; r:0.055; depth:0.004; bevel:0.003; color:#4b2a86; rough:0.5" position="-0.023 0.002 0.133"></a-entity>
-      <a-entity rrect="w:0.352; h:0.268; r:0.05; depth:0.004; bevel:0.002; color:#22094a; rough:0.3" position="-0.023 0.002 0.138"></a-entity>
+      <a-entity rrect="w:0.4269; h:0.3415; r:0.05; depth:0.004; bevel:0.003; color:#4b2a86; rough:0.5" position="-0.0219 -0.0161 0.133"></a-entity>
+      <a-entity rrect="w:0.3996; h:0.3142; r:0.048; depth:0.004; bevel:0.002; color:#22094a; rough:0.3" position="-0.0184 -0.0126 0.138"></a-entity>
       <!-- tira lateral izquierda -->
-      <a-entity rrect="w:0.034; h:0.27; r:0.01; depth:0.004; bevel:0.002; color:#5d3d99" position="-0.243 0.0 0.132"></a-entity>
+      <a-entity rrect="w:0.0314; h:0.3313; r:0.01; depth:0.004; bevel:0.002; color:#5d3d99" position="-0.2561 -0.0126 0.132"></a-entity>
 
       <!-- pantalla: fondo + video vertical 9:16 -->
-      <a-plane position="-0.023 0.002 0.1435" width="0.334" height="0.251" material="color:#2e1065; shader:flat"></a-plane>
-      <a-plane id="avideo" position="-0.023 0.002 0.1445" width="0.141" height="0.251" material="shader:flat; color:#2e1065"></a-plane>
+      <a-plane position="-0.0184 -0.0126 0.1435" width="0.3825" height="0.2971" material="color:#2e1065; shader:flat"></a-plane>
+      <a-plane id="avideo" position="-0.0184 -0.0126 0.1445" width="0.1671" height="0.2971" material="shader:flat; color:#2e1065"></a-plane>
 
       <!-- panel de controles -->
-      <a-entity rrect="w:0.062; h:0.092; r:0.012; depth:0.006; bevel:0.002; color:#f2a65a; rough:0.4; metal:0.3" position="0.217 0.107 0.132"></a-entity>
-      <a-cylinder radius="0.0095" height="0.012" rotation="90 0 0" position="0.21 0.128 0.142" color="#d6c4f5" metalness="0.4" roughness="0.35"></a-cylinder>
-      <a-cylinder radius="0.0095" height="0.012" rotation="90 0 0" position="0.21 0.089 0.142" color="#d6c4f5" metalness="0.4" roughness="0.35"></a-cylinder>
-      <a-cylinder radius="0.024" height="0.01" rotation="90 0 0" position="0.213 0.032 0.136" color="#4b2a86"></a-cylinder>
-      <a-cylinder radius="0.02" height="0.016" rotation="90 0 0" position="0.213 0.032 0.141" color="#d6c4f5" metalness="0.4" roughness="0.35"
+      <a-entity rrect="w:0.0533; h:0.0936; r:0.012; depth:0.006; bevel:0.002; color:#f2a65a; rough:0.4; metal:0.3" position="0.222 0.1028 0.132"></a-entity>
+      <a-cylinder radius="0.0137" height="0.012" rotation="90 0 0" position="0.2206 0.1199 0.142" color="#d6c4f5" metalness="0.4" roughness="0.35"></a-cylinder>
+      <a-cylinder radius="0.0137" height="0.012" rotation="90 0 0" position="0.2206 0.0809 0.142" color="#d6c4f5" metalness="0.4" roughness="0.35"></a-cylinder>
+      <a-cylinder radius="0.0273" height="0.01" rotation="90 0 0" position="0.2213 0.0242 0.136" color="#4b2a86"></a-cylinder>
+      <a-cylinder radius="0.0225" height="0.016" rotation="90 0 0" position="0.2213 0.0242 0.141" color="#d6c4f5" metalness="0.4" roughness="0.35"
         animation="property: rotation; from: 90 0 0; to: 90 360 0; dur: 8000; loop: true; easing: linear"></a-cylinder>
       <!-- rejilla del altavoz -->
-      <a-box width="0.048" height="0.006" depth="0.005" position="0.216 -0.005 0.133" color="#3d2070"></a-box>
-      <a-box width="0.048" height="0.006" depth="0.005" position="0.216 -0.022 0.133" color="#3d2070"></a-box>
-      <a-box width="0.048" height="0.006" depth="0.005" position="0.216 -0.039 0.133" color="#3d2070"></a-box>
-      <a-box width="0.048" height="0.006" depth="0.005" position="0.216 -0.056 0.133" color="#3d2070"></a-box>
-      <a-box width="0.048" height="0.006" depth="0.005" position="0.216 -0.073 0.133" color="#3d2070"></a-box>
-      <a-box width="0.048" height="0.006" depth="0.005" position="0.216 -0.09 0.133" color="#3d2070"></a-box>
-      <a-box width="0.048" height="0.006" depth="0.005" position="0.216 -0.107 0.133" color="#3d2070"></a-box>
+      <a-box width="0.0492" height="0.006" depth="0.005" position="0.222 -0.0181 0.133" color="#3d2070"></a-box>
+      <a-box width="0.0492" height="0.006" depth="0.005" position="0.222 -0.0348 0.133" color="#3d2070"></a-box>
+      <a-box width="0.0492" height="0.006" depth="0.005" position="0.222 -0.0516 0.133" color="#3d2070"></a-box>
+      <a-box width="0.0492" height="0.006" depth="0.005" position="0.222 -0.0683 0.133" color="#3d2070"></a-box>
+      <a-box width="0.0492" height="0.006" depth="0.005" position="0.222 -0.085 0.133" color="#3d2070"></a-box>
+      <a-box width="0.0492" height="0.006" depth="0.005" position="0.222 -0.1018 0.133" color="#3d2070"></a-box>
+      <a-box width="0.0492" height="0.006" depth="0.005" position="0.222 -0.1185 0.133" color="#3d2070"></a-box>
+      <a-box width="0.0492" height="0.006" depth="0.005" position="0.222 -0.1352 0.133" color="#3d2070"></a-box>
+      <a-box width="0.0492" height="0.006" depth="0.005" position="0.222 -0.152 0.133" color="#3d2070"></a-box>
+      <a-box width="0.0492" height="0.006" depth="0.005" position="0.222 -0.1687 0.133" color="#3d2070"></a-box>
       <!-- patas -->
-      <a-cylinder radius="0.017" height="0.03" position="-0.2 -0.21 0.07" color="#3b1f6b"></a-cylinder>
-      <a-cylinder radius="0.017" height="0.03" position="0.18 -0.21 0.07" color="#3b1f6b"></a-cylinder>
+      <a-cylinder radius="0.015" height="0.03" position="-0.237 -0.2333 0.07" color="#3b1f6b"></a-cylinder>
+      <a-cylinder radius="0.015" height="0.03" position="0.1933 -0.2333 0.07" color="#3b1f6b"></a-cylinder>
 
       <!-- botón de reproducir sobre el video en pausa -->
-      <a-circle id="playIcon" position="-0.023 0.002 0.16" radius="0.034" material="color:#ffffff; shader:flat; transparent:true; opacity:0.92"></a-circle>
-      <a-triangle position="-0.019 0.002 0.161" vertex-a="0 0.016 0" vertex-b="-0.014 -0.016 0" vertex-c="0.014 -0.016 0" rotation="0 0 -90"
+      <a-circle id="playIcon" position="-0.0184 -0.0126 0.16" radius="0.034" material="color:#ffffff; shader:flat; transparent:true; opacity:0.92"></a-circle>
+      <a-triangle position="-0.0144 -0.0126 0.161" vertex-a="0 0.016 0" vertex-b="-0.014 -0.016 0" vertex-c="0.014 -0.016 0" rotation="0 0 -90"
         material="color:#5b21b6; shader:flat"></a-triangle>
 
       <!-- manito animada -->
       <a-entity id="handG" visible="false">
-        <a-ring position="-0.023 0.002 0.17" radius-inner="0.016" radius-outer="0.024" material="color:#ffffff; shader:flat; transparent:true; opacity:0"
+        <a-ring position="-0.0184 -0.0126 0.17" radius-inner="0.016" radius-outer="0.024" material="color:#ffffff; shader:flat; transparent:true; opacity:0"
           animation__s="property: scale; from: 0.3 0.3 0.3; to: 2.4 2.4 2.4; dur: 1400; loop: true; easing: easeOutQuad"
           animation__o="property: material.opacity; from: 1; to: 0; dur: 1400; loop: true; easing: easeInQuad"></a-ring>
-        <a-ring position="-0.023 0.002 0.169" radius-inner="0.024" radius-outer="0.03" material="color:#7c3aed; shader:flat; transparent:true; opacity:0"
+        <a-ring position="-0.0184 -0.0126 0.169" radius-inner="0.024" radius-outer="0.03" material="color:#7c3aed; shader:flat; transparent:true; opacity:0"
           animation__s="property: scale; from: 0.3 0.3 0.3; to: 2.4 2.4 2.4; dur: 1400; loop: true; easing: easeOutQuad"
           animation__o="property: material.opacity; from: 1; to: 0; dur: 1400; loop: true; easing: easeInQuad"></a-ring>
-        <a-image id="handImg" width="0.2" height="0.2" position="-0.019 -0.073 0.18"
-          animation="property: position; from: -0.019 -0.098 0.18; to: -0.019 -0.073 0.18; dur: 650; dir: alternate; loop: true; easing: easeInOutSine"></a-image>
+        <a-image id="handImg" width="0.2" height="0.2" position="-0.0144 -0.0876 0.18"
+          animation="property: position; from: -0.0144 -0.1126 0.18; to: -0.0144 -0.0876 0.18; dur: 650; dir: alternate; loop: true; easing: easeInOutSine"></a-image>
       </a-entity>
 
       <!-- anillo plateado que gira alrededor del televisor -->
-      <a-entity position="-0.009 -0.006 0.07" animation="property: rotation; from: 0 0 0; to: 0 360 0; dur: 9000; loop: true; easing: linear">
-        <a-torus radius="0.36" radius-tubular="0.005" segments-tubular="72" rotation="0 0 12" scale="1 0.5 1"
+      <a-entity position="-0.0099 -0.0198 0.07" animation="property: rotation; from: 0 0 0; to: 0 360 0; dur: 9000; loop: true; easing: linear">
+        <a-torus radius="0.39" radius-tubular="0.005" segments-tubular="72" rotation="0 0 12" scale="1 0.5 1"
           material="color:#e8e2fa; metalness:0.8; roughness:0.25; emissive:#b9a8ee; emissiveIntensity:0.5"></a-torus>
       </a-entity>
 
