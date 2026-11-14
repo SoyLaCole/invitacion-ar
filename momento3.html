@@ -78,6 +78,14 @@ AFRAME.registerComponent("star4", {
   #tip { position:absolute; left:50%; top:calc(100% + 16px); transform:translateX(-50%); width:max-content; max-width:80vw; box-sizing:border-box; text-align:center;
     background:#fff; color:#4c1d95; font-weight:600; font-size:14px; line-height:1.35; padding:10px 16px; border-radius:14px; box-shadow:0 6px 18px rgba(28,10,51,.45); }
   #tip::before { content:""; position:absolute; left:50%; top:-9px; margin-left:-10px; border-left:10px solid transparent; border-right:10px solid transparent; border-bottom:10px solid #fff; }
+  /* ---------- Subtítulos de la voz ---------- */
+  #sub { position:fixed; z-index:11; left:50%; bottom:7%; transform:translate(-50%,12px); width:max-content; max-width:88vw; box-sizing:border-box; text-align:center;
+    background:rgba(24,8,46,.78); border:1px solid rgba(255,255,255,.35); border-radius:14px; padding:10px 16px 12px; opacity:0; pointer-events:none; transition:opacity .35s, transform .35s; }
+  #sub.on { opacity:1; transform:translate(-50%,0); }
+  #subName { font-size:12px; font-weight:800; letter-spacing:1.4px; text-transform:uppercase; color:#ffd77a; margin-bottom:4px; }
+  #subTxt { font-size:17px; font-weight:600; line-height:1.4; color:#fff; }
+  #subTxt span { opacity:.38; transition:opacity .25s; }
+  #subTxt span.lit { opacity:1; }
   #badge { position:fixed; z-index:12; top:16px; left:50%; transform:translateX(-50%); padding:9px 18px; border-radius:24px; font-weight:600; font-size:15px;
     background:rgba(76,29,149,.88); color:#fff; border:1px solid #fff; display:none; pointer-events:none; white-space:nowrap; }
   #badge.ok { background:#fff; color:#4c1d95; border-color:#c4b5fd; }
@@ -100,6 +108,7 @@ AFRAME.registerComponent("star4", {
   <button id="startBtn" style="display:none">Reintentar</button>
 </div>
 <div id="reticle"><div id="tip">Abriendo cámara…</div></div>
+<div id="sub"><div id="subName"></div><div id="subTxt"></div></div>
 <div id="badge">Buscando la imagen…</div>
 <div id="debug"></div>
 
@@ -289,6 +298,62 @@ function sparkBurst(p) {
   }
 }
 
+/* ============ Voz + subtítulos ============
+   Por defecto habla la voz en español del celular. Para usar locuciones grabadas, escribe la ruta de cada audio en VOICE_URLS
+   (por ejemplo "./voz_cabello.mp3") y se usarán en lugar de la voz del celular. */
+const VOICE_URLS = ["", "", "", ""];
+const subEl = document.querySelector("#sub"), subName = document.querySelector("#subName"), subTxt = document.querySelector("#subTxt");
+let voiceAudio = null, subTimer = null, subHide = null, pickedVoice = null;
+function pickVoice() {
+  if (!window.speechSynthesis) return null;
+  const vs = speechSynthesis.getVoices().filter(v => /^es/i.test(v.lang));
+  if (!vs.length) return null;
+  const score = v => (/CO|MX|US|419/i.test(v.lang) ? 3 : /ES/i.test(v.lang) ? 1 : 0) + (/google|natural|neural|paulina|sabina|monica|m[oó]nica|helena|sof[ií]a|female/i.test(v.name) ? 2 : 0);
+  return vs.sort((a, b) => score(b) - score(a))[0];
+}
+if (window.speechSynthesis) { speechSynthesis.onvoiceschanged = () => { pickedVoice = pickVoice(); }; pickedVoice = pickVoice(); }
+function stopVoice() {
+  clearInterval(subTimer); clearTimeout(subHide);
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  if (voiceAudio) { voiceAudio.pause(); voiceAudio = null; }
+  subEl.classList.remove("on");
+}
+function speak(i) {
+  stopVoice();
+  const p = PROGS[i], words = p.phrase.split(/\s+/);
+  subName.textContent = p.name;
+  subTxt.innerHTML = words.map(w => "<span>" + w + "</span>").join(" ");
+  const spans = subTxt.querySelectorAll("span");
+  subEl.classList.add("on");
+  let lit = 0, startedAt = performance.now(), ended = false;
+  const light = (n) => { while (lit < Math.min(n, spans.length)) spans[lit++].classList.add("lit"); };
+  const estTotal = p.phrase.length * 72 + 600;                     // estimación por si el celular no avisa cada palabra
+  const finish = () => {
+    if (ended) return; ended = true; clearInterval(subTimer); light(spans.length);
+    musicLevel(0.9, 0.8);
+    subHide = setTimeout(() => subEl.classList.remove("on"), 2800);
+  };
+  subTimer = setInterval(() => {
+    light(Math.floor(((performance.now() - startedAt) / estTotal) * spans.length));
+    if (performance.now() - startedAt > estTotal + 4000) finish();
+  }, 120);
+  musicLevel(0.22, 0.4);                                           // la música baja mientras habla la voz
+  if (VOICE_URLS[i]) {
+    voiceAudio = new Audio(VOICE_URLS[i]); voiceAudio.volume = 1; voiceAudio.onended = finish;
+    voiceAudio.onloadedmetadata = () => { startedAt = performance.now(); };
+    voiceAudio.play().catch(finish);
+  } else if (window.speechSynthesis) {
+    const u = new SpeechSynthesisUtterance(p.phrase);
+    u.lang = pickedVoice ? pickedVoice.lang : "es-CO"; if (pickedVoice) u.voice = pickedVoice;
+    u.rate = 0.92; u.pitch = 1.02; u.volume = 1;
+    u.onboundary = (e) => { if (e.name === "word" || e.charIndex != null) { const k = p.phrase.slice(0, e.charIndex).split(/\s+/).filter(Boolean).length; light(k + 1); } };
+    u.onend = finish; u.onerror = finish;
+    speechSynthesis.speak(u);
+  } else {
+    setTimeout(finish, estTotal);
+  }
+}
+
 function selectProg(i) {
   if (!found) return;
   audioInit();
@@ -301,7 +366,8 @@ function selectProg(i) {
   sparkBurst(p);
   startTheme(i);
   musicLevel(0.9, 0.3);
-  setTip("<b>" + p.name + "</b><br>" + p.phrase);
+  speak(i);
+  setTip("<b>" + p.name + "</b><br>Toca otro programa para escuchar su mensaje");
   if (navigator.vibrate) navigator.vibrate(30);
 }
 
@@ -346,12 +412,12 @@ target.addEventListener("targetFound", () => {
   reticle.classList.add("found");
   badge.classList.add("ok"); badge.textContent = "✓ ¡Imagen detectada!";
   world.setAttribute("scale", "0.01 0.01 0.01"); world.emit("pop");
-  if (active < 0) setTip("Toca cada programa para escuchar su música y descubrir su mensaje");
-  else { setTip("<b>" + PROGS[active].name + "</b><br>" + PROGS[active].phrase); musicLevel(0.9, 0.8); }
+  if (active < 0) setTip("Toca cada programa para escuchar su música y su mensaje");
+  else { setTip("<b>" + PROGS[active].name + "</b><br>Toca otro programa para escuchar su mensaje"); musicLevel(0.9, 0.8); }
   if (navigator.vibrate) navigator.vibrate(60);
 });
 target.addEventListener("targetLost", () => {
-  found = false;
+  found = false; stopVoice();
   reticle.classList.remove("found");
   badge.classList.remove("ok"); badge.textContent = "Buscando la imagen…";
   setTip("Centra la ilustración dentro del recuadro");
