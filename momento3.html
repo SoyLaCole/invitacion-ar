@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Momento 3 · Los cuatro programas</title>
+<title>Gracias a tu esfuerzo tu pasión se volvió disciplina</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 <script>
 (function(){
   var md=navigator.mediaDevices; if(!md||!md.getUserMedia) return;
@@ -61,7 +61,7 @@ AFRAME.registerComponent("star4", {
   /* ---------- Portada con cargador del video ---------- */
   #start { position:fixed; inset:0; z-index:20; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px;
     background: radial-gradient(circle at 50% 30%, #5b21b6 0%, #1c0a33 72%); color:#fff; }
-  #start h1 { font-size:28px; font-weight:700; letter-spacing:.2px; margin:0 0 10px; }
+  #start h1 { font-family:'Playfair Display', Georgia, 'Times New Roman', serif; font-size:23px; font-weight:700; line-height:1.2; letter-spacing:.8px; text-align:center; max-width:84vw; margin:0 0 12px; }
   #start p  { color:#e9ddff; margin:0 0 22px; max-width:300px; line-height:1.5; font-size:15px; }
   #loadwrap { width:min(80vw,320px); margin:0 0 26px; text-align:center; transition:opacity .5s; }
   #pct { font-size:64px; font-weight:800; line-height:1; letter-spacing:-1px; color:#fff; }
@@ -99,7 +99,7 @@ AFRAME.registerComponent("star4", {
 </head>
 <body>
 <div id="start">
-  <h1>Momento 3</h1>
+  <h1>GRACIAS A TU ESFUERZO TU PASIÓN SE VOLVIÓ DISCIPLINA</h1>
   <p id="startMsg">Preparando la experiencia…</p>
   <div id="loadwrap">
     <div id="pct">0%</div>
@@ -407,7 +407,6 @@ function selectProg(i) {
       ? "property: material.opacity; from: 0.3; to: 0.55; dur: 1200; dir: alternate; loop: true; easing: easeInOutSine"
       : "property: material.opacity; from: 0.03; to: 0.14; dur: 1500; dir: alternate; loop: true; delay:" + (k * 300) + "; easing: easeInOutSine");
   });
-  if (touched.has(i)) rippleEls[i].setAttribute("visible", false);  // las ondas ya cumplieron su trabajo en ese programa
   sparkBurst(p);
   startTheme(i);
   musicLevel(0.9, 0.3);
