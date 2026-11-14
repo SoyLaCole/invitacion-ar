@@ -114,12 +114,12 @@ AFRAME.registerComponent("star4", {
 <div id="debug"></div>
 
 <a-scene id="scene"
-  mindar-image="imageTargetSrc: ./momento3.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no; filterMinCF:0.0001; filterBeta: 0.001; warmupTolerance: 5; missTolerance: 10;"
+  mindar-image="imageTargetSrc: ./momento3v2.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no; filterMinCF:0.0001; filterBeta: 0.001; warmupTolerance: 5; missTolerance: 10;"
   color-space="sRGB" renderer="colorManagement: true"
   vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
   <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .hit"></a-camera>
 
-  <!-- Marcador: ancho = 1, alto = 656/1000 = 0.656, origen = centro de la imagen -->
+  <!-- Marcador: ancho = 1, alto = 643/1000 = 0.643, origen = centro de la imagen -->
   <a-entity id="target" mindar-image-target="targetIndex: 0">
     <a-light type="ambient" color="#ffffff" intensity="0.8"></a-light>
     <a-light type="directional" color="#ffffff" intensity="0.6" position="-0.5 1 1.5"></a-light>
@@ -127,7 +127,7 @@ AFRAME.registerComponent("star4", {
     <a-entity id="world">
       <!-- Plano de fondo: la ilustración completa (un poco más grande que la impresión para taparla) -->
       <a-entity id="back">
-        <a-image id="backImg" width="1" height="0.656" material="shader:flat; transparent:true; alphaTest:0.01"></a-image>
+        <a-image id="backImg" width="1" height="0.643" material="shader:flat; transparent:true; alphaTest:0.01"></a-image>
       </a-entity>
 
       <!-- Resplandores que invitan a tocar cada programa (se crean por código) -->
@@ -139,7 +139,7 @@ AFRAME.registerComponent("star4", {
         <a-image id="diaGlow" position="0 0 -0.004" width="0.34" height="0.34" material="blending:additive; transparent:true; depthWrite:false; shader:flat; opacity:0.4"
           animation="property: scale; from: 0.85 0.85 0.85; to: 1.15 1.15 1.15; dur: 1700; dir: alternate; loop: true; easing: easeInOutSine"></a-image>
         <a-entity id="diaBob" animation="property: position; from: 0 -0.006 0; to: 0 0.008 0; dur: 2600; dir: alternate; loop: true; easing: easeInOutSine">
-          <a-image id="diaImg" width="0.1135" height="0.1284" material="shader:flat; transparent:true; alphaTest:0.01"
+          <a-image id="diaImg" width="0.12577" height="0.14296" material="shader:flat; transparent:true; alphaTest:0.01"
             animation__r="property: rotation; from: 0 0 -3; to: 0 0 3; dur: 3200; dir: alternate; loop: true; easing: easeInOutSine"></a-image>
         </a-entity>
         <a-image id="diaFlare" position="0 0.028 0.004" width="0.16" height="0.16" material="blending:additive; transparent:true; depthWrite:false; shader:flat; opacity:0"
@@ -163,6 +163,7 @@ const PROGS = [
   { name: "Cuidado Estético de Manos y Pies", x: -0.014, y: -0.152, color: "#ffffff",
     phrase: "Con detalle, paciencia y cariño, convertiste cada paso en un arte." }
 ];
+PROGS.forEach(p => { const ox = p.x, oy = p.y; p.x = 1.15118 * ox + 0.01346; p.y = 1.15118 * oy - 0.01202; });   // reubicar sobre la ilustración definitiva
 
 /* ============ Música (sintetizada; es un reemplazo hasta tener las canciones reales) ============ */
 const mf = (m) => 440 * Math.pow(2, (m - 69) / 12);
@@ -265,7 +266,7 @@ document.querySelector("#backImg").setAttribute("src", "./m3_fondo.webp");
 document.querySelector("#diaImg").setAttribute("src", "./m3_rombo.webp");
 const backEl = document.querySelector("#back"), frontEl = document.querySelector("#front");
 backEl.setAttribute("position", "0 0 " + BACK_Z); backEl.setAttribute("scale", fz(BACK_Z) + " " + fz(BACK_Z) + " 1");
-const DIA = { x: -0.0131, y: 0.01216 };                    // centro del rombo sobre la ilustración
+const DIA = { x: -0.00172, y: 0.00137 };                    // centro del rombo sobre la ilustración
 const KF = fz(FRONT_Z);
 frontEl.setAttribute("scale", KF + " " + KF + " " + KF);
 frontEl.dataset.px = DIA.x * KF; frontEl.dataset.py = DIA.y * KF;

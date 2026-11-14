@@ -109,7 +109,7 @@ AFRAME.registerComponent("star4", {
 <div id="debug"></div>
 
 <a-scene id="scene"
-  mindar-image="imageTargetSrc: ./momento4v2.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no; filterMinCF:0.0001; filterBeta: 0.001; warmupTolerance: 5; missTolerance: 10;"
+  mindar-image="imageTargetSrc: ./momento4v3.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no; filterMinCF:0.0001; filterBeta: 0.001; warmupTolerance: 5; missTolerance: 10;"
   color-space="sRGB" renderer="colorManagement: true"
   vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
   <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
@@ -123,10 +123,12 @@ AFRAME.registerComponent("star4", {
 
     <!-- Plano de fondo: las nubes de la ilustración (un poco más grandes que la impresión para taparla), detrás del televisor -->
     <a-entity id="cloudsBack" position="0 0 -0.1" scale="1.105 1.105 1.105">
-      <a-image id="cloudsImg" width="1" height="0.6469" material="shader:flat; transparent:true; alphaTest:0.01"></a-image>
+      <a-image id="cloudsImg" width="1" height="0.662" material="shader:flat; transparent:true; alphaTest:0.01"></a-image>
       <a-entity id="twinkles"></a-entity>
     </a-entity>
 
+    <!-- Todo lo medido sobre la ilustración anterior se reubica sobre la ilustración definitiva -->
+    <a-entity id="fit" position="0.01212 -0.00969 0" scale="1.18766 1.18766 1.18766">
     <!-- resplandor mágico detrás del televisor -->
     <a-image id="glow" position="-0.0099 -0.0198 -0.01" width="1.1" height="0.9" material="blending:additive; transparent:true; depthWrite:false; shader:flat"
       animation="property: scale; from: 0.92 0.92 0.92; to: 1.08 1.08 1.08; dur: 2200; dir: alternate; loop: true; easing: easeInOutSine"></a-image>
@@ -194,6 +196,7 @@ AFRAME.registerComponent("star4", {
 
       <!-- destellos dorados (se agregan por código) -->
       <a-entity id="magic"></a-entity>
+    </a-entity>
     </a-entity>
   </a-entity>
 </a-scene>
@@ -365,7 +368,8 @@ cloudsBack.setAttribute("animation__rise", "property: position; from: 0 0 -0.005
   [[497,148],[686,148],[1128,163],[1260,500],[213,300],[253,646]].forEach((p, i) => {
     const e = document.createElement("a-image");
     e.setAttribute("src", url); e.setAttribute("width", 0.09); e.setAttribute("height", 0.09);
-    e.setAttribute("position", ((p[0] - 732) / 1464) + " " + ((473.5 - p[1]) / 1464) + " 0.004");
+    const ox = (p[0] - 732) / 1464, oy = (473.5 - p[1]) / 1464;
+    e.setAttribute("position", (1.18766 * ox + 0.01212) + " " + (1.18766 * oy - 0.00969) + " 0.004");
     e.setAttribute("material", "blending:additive; transparent:true; depthWrite:false; shader:flat; opacity:0");
     e.setAttribute("animation__p", "property: material.opacity; from: 0; to: 0.85; dur: " + (900 + i * 240) + "; dir: alternate; loop: true; delay:" + (i * 280) + "; easing: easeInOutSine");
     twEl.appendChild(e);
