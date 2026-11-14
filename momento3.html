@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Momento 3 · Los cuatro programas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script>
+(function(){
+  var md=navigator.mediaDevices; if(!md||!md.getUserMedia) return;
+  var orig=md.getUserMedia.bind(md);
+  md.getUserMedia=function(c){
+    if(c&&c.video){ if(c.video===true) c.video={}; c.video.width={ideal:1920}; c.video.height={ideal:1080}; }
+    return orig(c);
+  };
+})();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+<script>
+/* Caja redondeada con volumen (extrusión con bisel) */
+AFRAME.registerComponent("rrect", {
+  schema: { w:{default:1}, h:{default:1}, r:{default:0.05}, depth:{default:0.05}, bevel:{default:0.008}, color:{default:"#fff"}, rough:{default:0.55}, metal:{default:0.1} },
+  init: function () {
+    const T = AFRAME.THREE, d = this.data, b = d.bevel;
+    const w = d.w - 2*b, h = d.h - 2*b, r = Math.max(0.001, d.r - b), x = -w/2, y = -h/2;
+    const sh = new T.Shape();
+    sh.moveTo(x + r, y); sh.lineTo(x + w - r, y); sh.quadraticCurveTo(x + w, y, x + w, y + r);
+    sh.lineTo(x + w, y + h - r); sh.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    sh.lineTo(x + r, y + h); sh.quadraticCurveTo(x, y + h, x, y + h - r);
+    sh.lineTo(x, y + r); sh.quadraticCurveTo(x, y, x + r, y);
+    const geo = new T.ExtrudeGeometry(sh, { depth: d.depth, bevelEnabled: b > 0, bevelThickness: b, bevelSize: b, bevelSegments: 3, curveSegments: 10 });
+    const mat = new T.MeshStandardMaterial({ color: d.color, roughness: d.rough, metalness: d.metal });
+    this.el.setObject3D("mesh", new T.Mesh(geo, mat));
+  }
+});
+/* Destello de 4 puntas */
+AFRAME.registerComponent("star4", {
+  schema: { color:{default:"#ffd77a"}, inner:{default:0.22} },
+  init: function () {
+    const T = AFRAME.THREE, sh = new T.Shape();
+    for (let k = 0; k < 8; k++) {
+      const a = Math.PI/2 + k*Math.PI/4, rad = (k % 2 === 0) ? 1 : this.data.inner;
+      const px = Math.cos(a)*rad, py = Math.sin(a)*rad;
+      if (k === 0) sh.moveTo(px, py); else sh.lineTo(px, py);
+    }
+    sh.closePath();
+    const mat = new T.MeshBasicMaterial({ color: this.data.color, side: T.DoubleSide, transparent: true });
+    this.el.setObject3D("mesh", new T.Mesh(new T.ShapeGeometry(sh), mat));
+  }
+});
+</script>
+<style>
+  html { background:#1c0a33; }
+  body { background:transparent; }
+  html, body { margin:0; height:100%; overflow:hidden; font-family:'Plus Jakarta Sans', system-ui, sans-serif; }
+  button { font-family:inherit; }
+
+  /* ---------- Portada con cargador del video ---------- */
+  #start { position:fixed; inset:0; z-index:20; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px;
+    background: radial-gradient(circle at 50% 30%, #5b21b6 0%, #1c0a33 72%); color:#fff; }
+  #start h1 { font-size:28px; font-weight:700; letter-spacing:.2px; margin:0 0 10px; }
+  #start p  { color:#e9ddff; margin:0 0 22px; max-width:300px; line-height:1.5; font-size:15px; }
+  #loadwrap { width:min(80vw,320px); margin:0 0 26px; text-align:center; transition:opacity .5s; }
+  #pct { font-size:64px; font-weight:800; line-height:1; letter-spacing:-1px; color:#fff; }
+  #loadbar { height:12px; border-radius:8px; background:rgba(255,255,255,.22); overflow:hidden; margin-top:14px; }
+  #loadfill { height:100%; width:0%; border-radius:8px; background:#fff; transition:width .15s linear; }
+  #loadtxt { margin-top:10px; font-size:14px; font-weight:600; color:#e9ddff; }
+  #startBtn { font-size:17px; font-weight:600; padding:14px 30px; border-radius:30px; border:1px solid #fff; background:rgba(255,255,255,.14); color:#fff; letter-spacing:.3px; min-width:220px; }
+  #startBtn:disabled { opacity:.5; }
+
+  /* ---------- Recuadro guía + tooltip (siempre en formato tooltip) ---------- */
+  #reticle { position:fixed; z-index:9; left:50%; top:44%; width:72vw; max-width:360px; aspect-ratio:3/2; transform:translate(-50%,-50%);
+    border:3px dashed rgba(255,255,255,.9); border-radius:18px; box-shadow:0 0 0 2px rgba(91,33,182,.7); pointer-events:none; display:none; transition:border-color .25s, box-shadow .25s; }
+  #reticle.found { border-color:transparent; box-shadow:none; }   /* el recuadro se oculta pero el tooltip se queda */
+  #tip { position:absolute; left:50%; top:calc(100% + 16px); transform:translateX(-50%); width:max-content; max-width:80vw; box-sizing:border-box; text-align:center;
+    background:#fff; color:#4c1d95; font-weight:600; font-size:14px; line-height:1.35; padding:10px 16px; border-radius:14px; box-shadow:0 6px 18px rgba(28,10,51,.45); }
+  #tip::before { content:""; position:absolute; left:50%; top:-9px; margin-left:-10px; border-left:10px solid transparent; border-right:10px solid transparent; border-bottom:10px solid #fff; }
+  #badge { position:fixed; z-index:12; top:16px; left:50%; transform:translateX(-50%); padding:9px 18px; border-radius:24px; font-weight:600; font-size:15px;
+    background:rgba(76,29,149,.88); color:#fff; border:1px solid #fff; display:none; pointer-events:none; white-space:nowrap; }
+  #badge.ok { background:#fff; color:#4c1d95; border-color:#c4b5fd; }
+
+  #full { position:fixed; inset:0; z-index:30; background:#000; display:none; align-items:center; justify-content:center; }
+  #full video { width:100%; height:100%; object-fit:contain; background:#000; }
+  #close { position:absolute; top:14px; right:14px; z-index:31; width:44px; height:44px; border-radius:50%; border:1px solid #fff; background:rgba(76,29,149,.9); color:#fff; font-size:24px; line-height:1; }
+  #debug { position:fixed; top:8px; left:8px; z-index:10; color:#c4b5fd; font:11px monospace; }
+</style>
+</head>
+<body>
+<div id="start">
+  <h1>Momento 3</h1>
+  <p id="startMsg">Preparando la experiencia…</p>
+  <div id="loadwrap">
+    <div id="pct">0%</div>
+    <div id="loadbar"><div id="loadfill"></div></div>
+    <div id="loadtxt">Cargando…</div>
+  </div>
+  <button id="startBtn" style="display:none">Reintentar</button>
+</div>
+<div id="reticle"><div id="tip">Abriendo cámara…</div></div>
+<div id="badge">Buscando la imagen…</div>
+<div id="debug"></div>
+
+<a-scene id="scene"
+  mindar-image="imageTargetSrc: ./momento3.mind; autoStart: false; uiLoading: no; uiScanning: no; uiError: no; filterMinCF:0.0001; filterBeta: 0.001; warmupTolerance: 5; missTolerance: 10;"
+  color-space="sRGB" renderer="colorManagement: true"
+  vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+  <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .hit"></a-camera>
+
+  <!-- Marcador: ancho = 1, alto = 656/1000 = 0.656, origen = centro de la imagen -->
+  <a-entity id="target" mindar-image-target="targetIndex: 0">
+    <a-light type="ambient" color="#ffffff" intensity="0.8"></a-light>
+    <a-light type="directional" color="#ffffff" intensity="0.6" position="-0.5 1 1.5"></a-light>
+
+    <a-entity id="world" scale="0.01 0.01 0.01"
+      animation__pop="property: scale; from: 0.01 0.01 0.01; to: 1 1 1; dur: 1000; easing: easeOutElastic; startEvents: pop">
+
+      <!-- diamante central -->
+      <a-entity position="-0.007 0.016 0.1">
+        <a-octahedron radius="0.052" scale="1 1.35 1" material="color:#c4b5fd; emissive:#7c3aed; emissiveIntensity:0.9; metalness:0.7; roughness:0.15; flatShading:true"
+          animation="property: rotation; from: 0 0 0; to: 0 360 0; dur: 7000; loop: true; easing: linear"></a-octahedron>
+        <a-torus radius="0.095" radius-tubular="0.0025" segments-tubular="64" material="color:#ffffff; shader:flat; transparent:true; opacity:0.85"
+          animation="property: rotation; from: 70 0 0; to: 70 0 360; dur: 6000; loop: true; easing: linear"></a-torus>
+        <a-torus radius="0.095" radius-tubular="0.0025" segments-tubular="64" material="color:#ffd77a; shader:flat; transparent:true; opacity:0.85"
+          animation="property: rotation; from: 0 70 0; to: 360 70 0; dur: 8000; loop: true; easing: linear"></a-torus>
+      </a-entity>
+
+      <!-- los 4 programas se agregan por código -->
+      <a-entity id="progs"></a-entity>
+      <a-entity id="burst"></a-entity>
+    </a-entity>
+  </a-entity>
+</a-scene>
+
+<script>
+/* ============ Programas: posición sobre la ilustración, frase, color y música ============
+   Coordenadas: ancho de la imagen = 1, origen en el centro, +y hacia arriba. */
+const PROGS = [
+  { name: "Cabello",       x: -0.014, y:  0.166, color: "#ffd77a",
+    phrase: "Cada mechón cuenta una historia. Hoy tú escribes la tuya con tus propias manos." },
+  { name: "Maquillaje",    x: -0.226, y:  0.004, color: "#f0abfc",
+    phrase: "Descubriste que el color no se aplica, se siente. Tu talento ya brilla." },
+  { name: "Cuidado de la piel", x: 0.204, y: 0.004, color: "#a5f3fc",
+    phrase: "Aprendiste a cuidar lo más humano: la piel, la confianza y el bienestar de los demás." },
+  { name: "Manos y pies",  x: -0.014, y: -0.152, color: "#ffffff",
+    phrase: "Con detalle, paciencia y cariño, convertiste cada paso en un arte." }
+];
+
+/* ============ Música (sintetizada; es un reemplazo hasta tener las canciones reales) ============ */
+const mf = (m) => 440 * Math.pow(2, (m - 69) / 12);
+const THEMES = [
+  { tempo: 116, wave: "triangle", dec: 0.5, bell: false,
+    steps: [72,76,79,76,74,77,81,77,72,76,79,84,83,79,76,74],
+    pads: [[48,55,64],[45,52,60],[41,48,57],[43,50,59]] },
+  { tempo: 84, wave: "sine", dec: 1.6, bell: true,
+    steps: [81,null,76,null,79,null,83,null,81,null,74,null,76,null,72,null],
+    pads: [[45,52,60],[41,48,57],[48,55,60],[43,50,59]] },
+  { tempo: 64, wave: "sine", dec: 2.4, bell: false,
+    steps: [74,null,null,78,null,null,81,null,79,null,null,76,null,null,73,null],
+    pads: [[50,57,61,66],[47,54,59,62],[43,50,54,59],[45,52,57,61]] },
+  { tempo: 104, wave: "triangle", dec: 0.28, bell: false,
+    steps: [79,83,86,83,79,83,88,86,84,81,84,88,86,83,79,83],
+    pads: [[43,50,59],[48,55,64],[40,47,55],[50,57,62]] }
+];
+let ac = null, master = null, cur = -1, curNode = null, curTimer = null;
+function audioInit() {
+  if (!ac) {
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    master = ac.createGain(); master.gain.value = 0.9; master.connect(ac.destination);
+  }
+  if (ac.state === "suspended") ac.resume();
+}
+function tone(dest, freq, t, dur, type, vol, atk) {
+  const o = ac.createOscillator(), g = ac.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(vol, t + atk);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(dest); o.start(t); o.stop(t + dur + 0.05);
+}
+function startTheme(i) {
+  audioInit();
+  if (cur === i) return;
+  // salida suave del tema anterior
+  if (curNode) {
+    const old = curNode, oldT = curTimer, now = ac.currentTime;
+    old.gain.cancelScheduledValues(now); old.gain.setValueAtTime(old.gain.value, now); old.gain.linearRampToValueAtTime(0, now + 1.2);
+    setTimeout(() => { clearInterval(oldT); old.disconnect(); }, 1400);
+  }
+  cur = i;
+  const th = THEMES[i], node = ac.createGain();
+  node.gain.setValueAtTime(0, ac.currentTime); node.gain.linearRampToValueAtTime(1, ac.currentTime + 1.2);
+  node.connect(master); curNode = node;
+  const stepDur = 60 / th.tempo / 2;
+  let step = 0, next = ac.currentTime + 0.1;
+  const tick = () => {
+    while (next < ac.currentTime + 0.5) {
+      const n = th.steps[step % th.steps.length];
+      if (n != null) {
+        tone(node, mf(n), next, th.dec, th.wave, 0.16, 0.012);
+        if (th.bell) tone(node, mf(n) * 2.01, next, th.dec * 0.7, "sine", 0.05, 0.01);
+      }
+      if (step % 8 === 0) {
+        const chord = th.pads[Math.floor(step / 8) % th.pads.length];
+        chord.forEach(m => tone(node, mf(m), next, stepDur * 8.5, "sine", 0.05, 0.6));
+      }
+      next += stepDur; step++;
+    }
+  };
+  tick(); curTimer = setInterval(tick, 150);
+}
+function musicLevel(v, secs) {
+  if (!ac || !master) return;
+  const now = ac.currentTime;
+  master.gain.cancelScheduledValues(now); master.gain.setValueAtTime(master.gain.value, now);
+  master.gain.linearRampToValueAtTime(v, now + secs);
+}
+window.addEventListener("pointerdown", audioInit, { passive: true });
+</script>
+
+<script>
+const scene = document.querySelector("#scene");
+const target = document.querySelector("#target");
+const world = document.querySelector("#world");
+const progs = document.querySelector("#progs");
+const burst = document.querySelector("#burst");
+const tip = document.querySelector("#tip");
+const reticle = document.querySelector("#reticle"), badge = document.querySelector("#badge");
+const dbg = document.querySelector("#debug");
+const startBtn = document.querySelector("#startBtn");
+const pctEl = document.querySelector("#pct"), loadfill = document.querySelector("#loadfill"), loadtxt = document.querySelector("#loadtxt");
+const setTip = (html) => { tip.innerHTML = html; };
+
+let found = false, started = false, sceneReady = false, shownDone = false, lostTimer = null, active = -1;
+const touched = new Set();
+
+/* ---------- Construcción de los 4 programas ---------- */
+const haloEls = [], gemEls = [];
+PROGS.forEach((p, i) => {
+  const g = document.createElement("a-entity");
+  g.setAttribute("position", p.x + " " + p.y + " 0.02");
+
+  const hit = document.createElement("a-plane");               // zona táctil invisible
+  hit.setAttribute("class", "hit"); hit.setAttribute("width", 0.3); hit.setAttribute("height", 0.27);
+  hit.setAttribute("material", "shader:flat; transparent:true; opacity:0; depthWrite:false");
+  hit.addEventListener("click", () => selectProg(i));
+  g.appendChild(hit);
+
+  const gem = document.createElement("a-sphere");              // gema que invita a tocar
+  gem.setAttribute("radius", 0.016); gem.setAttribute("position", "0 0 0.1");
+  gem.setAttribute("material", "color:" + p.color + "; emissive:" + p.color + "; emissiveIntensity:0.9; metalness:0.2; roughness:0.2");
+  gem.setAttribute("animation", "property: position; from: 0 0 0.09; to: 0 0 0.125; dur: 1100; dir: alternate; loop: true; easing: easeInOutSine");
+  g.appendChild(gem); gemEls.push(gem);
+
+  [0, 0.45].forEach((d, k) => {                                  // ondas "toca aquí"
+    const r = document.createElement("a-ring");
+    r.setAttribute("radius-inner", 0.014); r.setAttribute("radius-outer", 0.02);
+    r.setAttribute("position", "0 0 0.1");
+    r.setAttribute("material", "color:" + p.color + "; shader:flat; transparent:true; opacity:0");
+    r.setAttribute("animation__s", "property: scale; from: 0.5 0.5 0.5; to: 3.2 3.2 3.2; dur: 1800; delay:" + (d*1000) + "; loop: true; easing: easeOutQuad");
+    r.setAttribute("animation__o", "property: material.opacity; from: 0.9; to: 0; dur: 1800; delay:" + (d*1000) + "; loop: true; easing: easeInQuad");
+    r.setAttribute("class", "wave");
+    g.appendChild(r);
+  });
+
+  const halo = document.createElement("a-torus");               // aro del programa activo
+  halo.setAttribute("radius", 0.115); halo.setAttribute("radius-tubular", 0.0035); halo.setAttribute("segments-tubular", 64);
+  halo.setAttribute("position", "0 0 0.06"); halo.setAttribute("visible", false);
+  halo.setAttribute("material", "color:" + p.color + "; shader:flat; transparent:true; opacity:0.95");
+  halo.setAttribute("animation", "property: rotation; from: 60 0 0; to: 60 0 360; dur: 5000; loop: true; easing: linear");
+  g.appendChild(halo); haloEls.push(halo);
+
+  progs.appendChild(g);
+});
+
+function sparkBurst(p) {
+  for (let k = 0; k < 14; k++) {
+    const s = document.createElement("a-entity");
+    const a = Math.random() * Math.PI * 2, d = 0.08 + Math.random() * 0.12, sc = 0.012 + Math.random() * 0.016;
+    s.setAttribute("star4", "color: " + (k % 2 ? "#ffd77a" : p.color));
+    s.setAttribute("position", p.x + " " + p.y + " 0.12");
+    s.setAttribute("scale", sc + " " + sc + " " + sc);
+    s.setAttribute("animation__m", "property: position; to: " + (p.x + Math.cos(a)*d) + " " + (p.y + Math.sin(a)*d) + " " + (0.14 + Math.random()*0.08) + "; dur: 1100; easing: easeOutCubic");
+    s.setAttribute("animation__f", "property: scale; to: 0.001 0.001 0.001; dur: 1100; easing: easeInQuad");
+    burst.appendChild(s);
+    setTimeout(() => s.remove(), 1200);
+  }
+}
+
+function selectProg(i) {
+  if (!found) return;
+  audioInit();
+  active = i; touched.add(i);
+  const p = PROGS[i];
+  haloEls.forEach((h, k) => h.setAttribute("visible", k === i));
+  gemEls.forEach((gm, k) => gm.setAttribute("scale", k === i ? "1.7 1.7 1.7" : "1 1 1"));
+  // quitar las ondas del programa ya tocado
+  progs.children[i].querySelectorAll(".wave").forEach(w => w.setAttribute("visible", false));
+  sparkBurst(p);
+  startTheme(i);
+  musicLevel(0.9, 0.3);
+  setTip("<b>" + p.name + "</b><br>" + p.phrase);
+  if (navigator.vibrate) navigator.vibrate(30);
+}
+
+/* ---------- Carga inicial (contador suave) ---------- */
+let shown = 0, tgt = 0;
+function setPct(n) { pctEl.textContent = n + "%"; loadfill.style.width = n + "%"; }
+const sceneTimer = setInterval(() => { if (sceneReady) tgt = 100; else tgt = Math.min(90, tgt + 2); }, 80);
+setInterval(() => {
+  if (shownDone) return;
+  if (shown < tgt) { shown++; setPct(shown); }
+  if (shown >= 100) { shownDone = true; clearInterval(sceneTimer); loadtxt.textContent = "¡Listo! ✓"; setTimeout(maybeStart, 700); }
+}, 28);
+function maybeStart() { if (sceneReady && shownDone && !started) startAR(); }
+if (scene.hasLoaded) { sceneReady = true; } else scene.addEventListener("loaded", () => { sceneReady = true; maybeStart(); });
+
+/* ---------- Inicio automático ---------- */
+function startAR() {
+  started = true;
+  const st = document.querySelector("#start");
+  st.style.transition = "opacity .5s"; st.style.opacity = 0;
+  setTimeout(() => { st.style.display = "none"; }, 500);
+  reticle.style.display = "block"; badge.style.display = "block";
+  setTip("Abriendo cámara…");
+  const fail = (msg, e) => {
+    setTip(msg); dbg.textContent = String(e || "");
+    st.style.display = "flex"; st.style.opacity = 1;
+    document.querySelector("#loadwrap").style.display = "none";
+    document.querySelector("#startMsg").textContent = msg;
+    startBtn.style.display = "inline-block"; startBtn.textContent = "Reintentar";
+    started = false;
+  };
+  try {
+    Promise.resolve(scene.systems["mindar-image-system"].start()).then(() => {
+      if (!found) setTip("Centra la ilustración dentro del recuadro");
+    }).catch(e => fail("No se pudo abrir la cámara. Revisa los permisos.", e));
+  } catch (e) { fail("Error al iniciar. Recarga la página.", e); }
+}
+startBtn.addEventListener("click", () => { startBtn.style.display = "none"; startAR(); });
+
+target.addEventListener("targetFound", () => {
+  found = true; clearTimeout(lostTimer);
+  reticle.classList.add("found");
+  badge.classList.add("ok"); badge.textContent = "✓ ¡Imagen detectada!";
+  world.setAttribute("scale", "0.01 0.01 0.01"); world.emit("pop");
+  if (active < 0) setTip("Toca cada programa para escuchar su música y descubrir su mensaje");
+  else { setTip("<b>" + PROGS[active].name + "</b><br>" + PROGS[active].phrase); musicLevel(0.9, 0.8); }
+  if (navigator.vibrate) navigator.vibrate(60);
+});
+target.addEventListener("targetLost", () => {
+  found = false;
+  reticle.classList.remove("found");
+  badge.classList.remove("ok"); badge.textContent = "Buscando la imagen…";
+  setTip("Centra la ilustración dentro del recuadro");
+  clearTimeout(lostTimer); lostTimer = setTimeout(() => musicLevel(0, 1.0), 2500);   // la música se apaga si se aleja la imagen
+});
+</script>
+</body>
+</html>
