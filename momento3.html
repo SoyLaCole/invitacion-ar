@@ -247,7 +247,9 @@ const reticle = document.querySelector("#reticle"), badge = document.querySelect
 const dbg = document.querySelector("#debug");
 const startBtn = document.querySelector("#startBtn");
 const pctEl = document.querySelector("#pct"), loadfill = document.querySelector("#loadfill"), loadtxt = document.querySelector("#loadtxt");
-const setTip = (html) => { tip.innerHTML = html; };
+const TIP_MSG = "Toca cada programa para escuchar un mensaje";
+let speaking = false;                                    // mientras habla la voz se ven los subtítulos y se oculta el tooltip
+const setTip = (html) => { tip.innerHTML = html; tip.style.display = speaking ? "none" : ""; };
 
 let found = false, started = false, sceneReady = false, shownDone = false, lostTimer = null, active = -1;
 const touched = new Set();
@@ -351,6 +353,7 @@ function stopVoice() {
   if (window.speechSynthesis) speechSynthesis.cancel();
   if (voiceAudio) { voiceAudio.pause(); voiceAudio = null; }
   subEl.classList.remove("on");
+  speaking = false; tip.style.display = "";
 }
 function speak(i) {
   stopVoice();
@@ -359,13 +362,14 @@ function speak(i) {
   subTxt.innerHTML = words.map(w => "<span>" + w + "</span>").join(" ");
   const spans = subTxt.querySelectorAll("span");
   subEl.classList.add("on");
+  speaking = true; tip.style.display = "none";
   let lit = 0, startedAt = performance.now(), ended = false;
   const light = (n) => { while (lit < Math.min(n, spans.length)) spans[lit++].classList.add("lit"); };
   let estTotal = p.phrase.length * 72 + 600;                        // estimación por si no hay aviso palabra por palabra
   const finish = () => {
     if (ended) return; ended = true; clearInterval(subTimer); light(spans.length);
     musicLevel(0.9, 0.8);
-    subHide = setTimeout(() => subEl.classList.remove("on"), 2800);
+    subHide = setTimeout(() => { subEl.classList.remove("on"); speaking = false; setTip(TIP_MSG); }, 450);   // el tiempo lo marca el final de la voz
   };
   subTimer = setInterval(() => {
     light(Math.floor(((performance.now() - startedAt) / estTotal) * spans.length));
@@ -411,7 +415,6 @@ function selectProg(i) {
   startTheme(i);
   musicLevel(0.9, 0.3);
   speak(i);
-  setTip("<b>" + p.name + "</b><br>Toca otro programa para escuchar su mensaje");
   if (navigator.vibrate) navigator.vibrate(30);
 }
 
@@ -445,7 +448,7 @@ function startAR() {
   };
   try {
     Promise.resolve(scene.systems["mindar-image-system"].start()).then(() => {
-      if (!found) setTip("Centra la ilustración dentro del recuadro");
+      if (!found) setTip("Centra la ilustración de los 4 programas dentro del recuadro");
     }).catch(e => fail("No se pudo abrir la cámara. Revisa los permisos.", e));
   } catch (e) { fail("Error al iniciar. Recarga la página.", e); }
 }
@@ -456,15 +459,15 @@ target.addEventListener("targetFound", () => {
   reticle.classList.add("found");
   badge.classList.add("ok"); badge.textContent = "✓ ¡Imagen detectada!";
   riseLayers();
-  if (active < 0) setTip("Toca cada programa para escuchar su música y su mensaje");
-  else { setTip("<b>" + PROGS[active].name + "</b><br>Toca otro programa para escuchar su mensaje"); musicLevel(0.9, 0.8); }
+  setTip(TIP_MSG);
+  if (active >= 0) musicLevel(0.9, 0.8);
   if (navigator.vibrate) navigator.vibrate(60);
 });
 target.addEventListener("targetLost", () => {
   found = false; stopVoice();
   reticle.classList.remove("found");
   badge.classList.remove("ok"); badge.textContent = "Buscando la imagen…";
-  setTip("Centra la ilustración dentro del recuadro");
+  setTip("Centra la ilustración de los 4 programas dentro del recuadro");
   clearTimeout(lostTimer); lostTimer = setTimeout(() => musicLevel(0, 1.0), 2500);   // la música se apaga si se aleja la imagen
 });
 </script>
