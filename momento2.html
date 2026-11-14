@@ -356,7 +356,7 @@ function startAR() {
   };
   try {
     Promise.resolve(scene.systems["mindar-image-system"].start()).then(() => {
-      if (!found) setTip("Centra la fachada dentro del recuadro");
+      if (!found) setTip("Centra La Cole dentro del recuadro");
     }).catch(e => fail("No se pudo abrir la cámara. Revisa los permisos.", e));
   } catch (e) { fail("Error al iniciar. Recarga la página.", e); }
 }
@@ -376,7 +376,7 @@ target.addEventListener("targetLost", () => {
   found = false;
   reticle.classList.remove("found");
   badge.classList.remove("ok"); badge.textContent = "Buscando la imagen…";
-  setTip("Centra la fachada dentro del recuadro");
+  setTip("Centra La Cole dentro del recuadro");
   clearTimeout(lostTimer); lostTimer = setTimeout(() => songLevel(0, 1.0), 2500);
 });
 </script>
